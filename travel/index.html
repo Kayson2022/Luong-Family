@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Travel — FinSuite</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#f7f3ec;
+  --warm:#ede6d9;
+  --sand:#d4c4a8;
+  --ink:#1c1814;
+  --muted:#7a6e60;
+  --accent:#c9824c;   /* warm terracotta */
+  --gold:#c9a84c;
+  --border:#e0d6c8;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--cream);
+  color:var(--ink);
+  font-family:'Syne',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:90;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 56px;height:64px;
+  background:rgba(247,243,236,0.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'DM Mono',monospace;
+  font-size:0.85rem;font-weight:500;
+  letter-spacing:3px;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;
+  display:flex;align-items:center;gap:8px;
+}
+.logo-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--accent);
+}
+.nav-links{display:flex;gap:32px;align-items:center;}
+.nav-links a{
+  font-size:0.75rem;font-weight:700;
+  letter-spacing:0.8px;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;
+  transition:color 0.2s;
+}
+.nav-links a:hover,.nav-links a.active{color:var(--ink);}
+.nav-back{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 16px;border-radius:4px;
+  border:1px solid var(--border);
+  font-size:0.72rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;
+  transition:all 0.2s;
+}
+.nav-back:hover{border-color:var(--sand);color:var(--ink);}
+
+/* ── HERO ── */
+.hero{
+  padding:80px 56px 60px;
+  display:grid;grid-template-columns:1fr auto;
+  align-items:end;gap:40px;
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'TRAVEL';
+  position:absolute;right:-20px;top:50%;transform:translateY(-50%);
+  font-family:'Playfair Display',serif;
+  font-size:12rem;font-weight:700;
+  color:rgba(28,24,20,0.04);
+  line-height:1;letter-spacing:-4px;
+  pointer-events:none;
+  white-space:nowrap;
+}
+.hero-label{
+  font-family:'DM Mono',monospace;
+  font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:14px;
+}
+h1{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2.8rem,6vw,5rem);
+  line-height:1.05;
+  color:var(--ink);
+  margin-bottom:16px;
+}
+h1 em{font-style:italic;color:var(--accent);}
+.hero-sub{
+  font-size:1rem;color:var(--muted);
+  line-height:1.7;max-width:480px;
+}
+.hero-stats{
+  display:flex;flex-direction:column;gap:20px;
+  padding:24px 32px;
+  background:var(--warm);
+  border:1px solid var(--border);
+  border-radius:8px;
+  min-width:160px;
+  flex-shrink:0;
+}
+.hero-stat-num{
+  font-family:'Playfair Display',serif;
+  font-size:2.4rem;color:var(--ink);line-height:1;
+}
+.hero-stat-lbl{
+  font-size:0.68rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  color:var(--muted);margin-top:2px;
+}
+
+/* ── FILTERS ── */
+.filter-bar{
+  padding:24px 56px;
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--border);
+  background:var(--cream);
+  position:sticky;top:64px;z-index:80;
+}
+.filter-label{
+  font-family:'DM Mono',monospace;
+  font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;
+  color:var(--muted);margin-right:4px;
+}
+.filter-btn{
+  padding:5px 14px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:transparent;
+  font-family:'Syne',sans-serif;
+  font-size:0.75rem;font-weight:600;
+  color:var(--muted);cursor:pointer;
+  transition:all 0.18s;
+}
+.filter-btn:hover,.filter-btn.active{
+  background:var(--ink);
+  border-color:var(--ink);
+  color:var(--cream);
+}
+.photo-count{
+  margin-left:auto;
+  font-family:'DM Mono',monospace;
+  font-size:0.68rem;color:var(--muted);
+}
+
+/* ── DESTINATIONS GRID ── */
+.destinations{padding:56px;}
+.dest-section{margin-bottom:72px;}
+.dest-header{
+  display:flex;align-items:baseline;gap:16px;
+  margin-bottom:28px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.dest-country{
+  font-family:'Playfair Display',serif;
+  font-size:1.6rem;color:var(--ink);
+}
+.dest-count{
+  font-family:'DM Mono',monospace;
+  font-size:0.68rem;color:var(--muted);
+  letter-spacing:1px;
+}
+.dest-year{
+  margin-left:auto;
+  font-family:'DM Mono',monospace;
+  font-size:0.72rem;color:var(--accent);
+  font-weight:500;
+}
+
+/* Photo grid — 3 sizes in masonry-like pattern */
+.photo-grid{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:12px;
+}
+.photo-card{
+  position:relative;overflow:hidden;border-radius:6px;
+  cursor:pointer;
+  background:var(--warm);
+}
+.photo-card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(28,24,20,0.55) 0%,transparent 50%);
+  opacity:0;transition:opacity 0.3s;
+}
+.photo-card:hover::after{opacity:1;}
+.photo-card:hover .photo-info{opacity:1;transform:translateY(0);}
+.photo-card:hover img{transform:scale(1.04);}
+
+/* Grid placement patterns */
+.photo-card.large{grid-column:span 5;aspect-ratio:4/3;}
+.photo-card.tall {grid-column:span 4;aspect-ratio:3/4;}
+.photo-card.wide {grid-column:span 8;aspect-ratio:16/7;}
+.photo-card.med  {grid-column:span 4;aspect-ratio:4/3;}
+.photo-card.sm   {grid-column:span 3;aspect-ratio:1/1;}
+
+.photo-card img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+
+/* Placeholder when no image */
+.photo-placeholder{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:10px;min-height:180px;
+  background:var(--warm);
+  border:2px dashed var(--border);
+  border-radius:6px;
+}
+.photo-placeholder span{font-size:2rem;opacity:0.4;}
+.photo-placeholder p{font-size:0.72rem;color:var(--muted);text-align:center;line-height:1.4;}
+.photo-placeholder .upload-hint{
+  font-size:0.68rem;font-family:'DM Mono',monospace;
+  color:var(--accent);margin-top:4px;
+}
+
+.photo-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:14px 16px;
+  opacity:0;transform:translateY(6px);
+  transition:all 0.3s;
+  z-index:2;
+}
+.photo-title{
+  font-family:'Playfair Display',serif;
+  font-style:italic;
+  font-size:0.9rem;color:#fff;line-height:1.3;
+}
+.photo-date{
+  font-family:'DM Mono',monospace;
+  font-size:0.62rem;color:rgba(255,255,255,0.6);
+  margin-top:2px;
+}
+
+/* ── UPLOAD AREA ── */
+.upload-zone{
+  margin:0 56px 56px;
+  border:2px dashed var(--sand);
+  border-radius:10px;
+  padding:48px;
+  text-align:center;
+  background:var(--warm);
+  transition:all 0.2s;
+  cursor:pointer;
+}
+.upload-zone:hover,.upload-zone.drag-over{
+  border-color:var(--accent);
+  background:rgba(201,130,76,0.04);
+}
+.upload-icon{font-size:2.5rem;margin-bottom:12px;opacity:0.5;}
+.upload-title{
+  font-family:'Playfair Display',serif;
+  font-size:1.1rem;color:var(--ink);margin-bottom:6px;
+}
+.upload-sub{font-size:0.82rem;color:var(--muted);}
+.upload-sub strong{color:var(--accent);}
+#fileInput{display:none;}
+
+/* ── LIGHTBOX ── */
+.lightbox{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(14,10,8,0.92);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.25s;
+}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{
+  max-width:90vw;max-height:88vh;
+  border-radius:4px;
+  object-fit:contain;
+  transform:scale(0.96);
+  transition:transform 0.25s;
+}
+.lightbox.open img{transform:scale(1);}
+.lightbox-close{
+  position:absolute;top:20px;right:24px;
+  background:none;border:none;color:rgba(255,255,255,0.5);
+  font-size:2rem;cursor:pointer;transition:color 0.2s;line-height:1;
+}
+.lightbox-close:hover{color:#fff;}
+.lightbox-caption{
+  position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:0.9rem;color:rgba(255,255,255,0.55);
+  text-align:center;white-space:nowrap;
+}
+.lightbox-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,0.1);border:none;
+  color:rgba(255,255,255,0.6);font-size:1.8rem;
+  width:48px;height:48px;border-radius:50%;cursor:pointer;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;
+}
+.lightbox-nav:hover{background:rgba(255,255,255,0.2);color:#fff;}
+.lightbox-prev{left:20px;}
+.lightbox-next{right:20px;}
+
+/* ── ADD DESTINATION MODAL ── */
+.modal-bg{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(28,24,20,0.6);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{
+  background:var(--cream);
+  border-radius:10px;
+  padding:36px;
+  width:100%;max-width:440px;
+  border:1px solid var(--border);
+  box-shadow:0 24px 60px rgba(28,24,20,0.2);
+}
+.modal h3{
+  font-family:'Playfair Display',serif;
+  font-size:1.4rem;margin-bottom:20px;color:var(--ink);
+}
+.modal label{
+  display:block;font-size:0.72rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:5px;
+}
+.modal input,.modal select{
+  width:100%;padding:10px 14px;
+  border:1px solid var(--border);border-radius:5px;
+  background:#fff;font-family:'Syne',sans-serif;font-size:0.88rem;
+  color:var(--ink);outline:none;transition:border-color 0.2s;
+  margin-bottom:14px;
+}
+.modal input:focus,.modal select:focus{border-color:var(--accent);}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
+.btn-cancel{
+  padding:9px 20px;border-radius:5px;
+  border:1px solid var(--border);background:transparent;
+  font-size:0.78rem;font-weight:700;color:var(--muted);cursor:pointer;
+}
+.btn-confirm{
+  padding:9px 20px;border-radius:5px;
+  border:none;background:var(--ink);
+  font-size:0.78rem;font-weight:800;color:var(--cream);cursor:pointer;
+  transition:background 0.2s;
+}
+.btn-confirm:hover{background:var(--accent);}
+
+/* ── EMPTY STATE ── */
+.empty{
+  padding:100px 56px;
+  text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+.empty-icon{font-size:4rem;opacity:0.25;}
+.empty h2{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--ink);}
+.empty p{font-size:0.88rem;color:var(--muted);max-width:340px;line-height:1.6;}
+.btn-add-dest{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 24px;border-radius:5px;
+  background:var(--ink);color:var(--cream);
+  font-size:0.78rem;font-weight:800;
+  letter-spacing:0.5px;text-transform:uppercase;
+  border:none;cursor:pointer;margin-top:8px;
+  transition:background 0.2s;
+}
+.btn-add-dest:hover{background:var(--accent);}
+
+/* Footer */
+footer{
+  padding:32px 56px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--warm);
+}
+.footer-note{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;}
+
+@media(max-width:768px){
+  nav,footer,.hero,.filter-bar,.destinations,.upload-zone{padding-left:20px;padding-right:20px;}
+  .hero{grid-template-columns:1fr;padding-top:48px;}
+  .hero::before{display:none;}
+  .hero-stats{flex-direction:row;width:100%;}
+  .photo-card.large,.photo-card.tall,.photo-card.wide,.photo-card.med,.photo-card.sm{grid-column:span 12;}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH CHECK -->
+<script>
+(function(){
+  const stored = localStorage.getItem('finsuite_auth');
+  let ok = false;
+  if (stored) { try { ok = Date.now() < JSON.parse(stored).expiry; } catch(e){} }
+  if (!ok) location.replace('../gate.html?next=travel/index.html');
+})();
+</script>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="../index.html">
+    <span class="logo-dot"></span>
+    FINSUITE
+  </a>
+  <div class="nav-links">
+    <a href="../index.html">Home</a>
+    <a href="index.html" class="active">Travel</a>
+    <a href="../stocks/" style="font-size:0.72rem;">📊 Stocks</a>
+    <a href="../portfolio/" style="font-size:0.72rem;">💼 Portfolio</a>
+  </div>
+  <a class="nav-back" href="../index.html">← Back</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="hero-label">Personal · Travel Journal</div>
+    <h1>The world,<br><em>one trip</em><br>at a time.</h1>
+    <p class="hero-sub">Photos, memories, and stories from the places that left a mark. Organized by destination.</p>
+  </div>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-num" id="destCount">0</div>
+      <div class="hero-stat-lbl">Destinations</div>
+    </div>
+    <div>
+      <div class="hero-stat-num" id="photoCount">0</div>
+      <div class="hero-stat-lbl">Photos</div>
+    </div>
+    <div>
+      <div class="hero-stat-num" id="yearCount">0</div>
+      <div class="hero-stat-lbl">Years</div>
+    </div>
+  </div>
+</section>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar" style="display:none;">
+  <span class="filter-label">Filter:</span>
+  <div id="filterBtns"></div>
+  <span class="photo-count" id="photoCountLabel"></span>
+</div>
+
+<!-- DESTINATIONS -->
+<main class="destinations" id="destinationsArea">
+  <!-- rendered by JS -->
+</main>
+
+<!-- UPLOAD ZONE -->
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+  <div class="upload-icon">✈️</div>
+  <div class="upload-title">Add photos to a destination</div>
+  <p class="upload-sub">Drag & drop photos here, or <strong>click to browse</strong>.<br>Select a destination first, or create a new one.</p>
+  <input type="file" id="fileInput" multiple accept="image/*">
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <button class="lightbox-nav lightbox-prev" onclick="lightboxNav(-1,event)">‹</button>
+  <img id="lightboxImg" src="" alt="">
+  <button class="lightbox-nav lightbox-next" onclick="lightboxNav(1,event)">›</button>
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+
+<!-- ADD DESTINATION MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>New Destination</h3>
+    <label>Country / Region</label>
+    <input id="mCountry" placeholder="e.g. Japan" autocomplete="off">
+    <label>City / Place</label>
+    <input id="mCity" placeholder="e.g. Tokyo, Kyoto">
+    <label>Year</label>
+    <input id="mYear" type="number" placeholder="e.g. 2024" min="1990" max="2099">
+    <label>Notes (optional)</label>
+    <input id="mNotes" placeholder="e.g. 10-day trip, cherry blossom season">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" onclick="addDestination()">Add Destination</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING ADD BUTTON -->
+<button onclick="openModal()" id="fabBtn" style="
+  position:fixed;bottom:32px;right:32px;z-index:100;
+  width:52px;height:52px;border-radius:50%;border:none;
+  background:var(--ink);color:var(--cream);
+  font-size:1.5rem;cursor:pointer;
+  box-shadow:0 4px 20px rgba(28,24,20,0.25);
+  display:none;transition:all 0.2s;
+  display:flex;align-items:center;justify-content:center;
+" title="Add destination">+</button>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-note">FINSUITE · TRAVEL</span>
+  <span class="footer-note">Photos stored locally in your browser</span>
+</footer>
+
+<script>
+// ── Data model ──────────────────────────────────────────────────────
+// destinations: [ { id, country, city, year, notes, photos: [{id,name,src,caption}] } ]
+const STORAGE_KEY = 'finsuite_travel';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { return []; }
+}
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let destinations = load();
+let activeFilter = 'all';
+let lightboxPhotos = [], lightboxIdx = 0;
+
+// ── Render ──────────────────────────────────────────────────────────
+function render() {
+  const area = document.getElementById('destinationsArea');
+  const filterBar = document.getElementById('filterBar');
+  const fab = document.getElementById('fabBtn');
+
+  // Update stats
+  const totalPhotos = destinations.reduce((s,d) => s + d.photos.length, 0);
+  const years = [...new Set(destinations.map(d => d.year).filter(Boolean))];
+  document.getElementById('destCount').textContent  = destinations.length;
+  document.getElementById('photoCount').textContent = totalPhotos;
+  document.getElementById('yearCount').textContent  = years.length;
+
+  if (destinations.length === 0) {
+    filterBar.style.display = 'none';
+    fab.style.display = 'none';
+    area.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🌍</div>
+        <h2>No trips yet</h2>
+        <p>Add your first destination and start uploading photos from your travels.</p>
+        <button class="btn-add-dest" onclick="openModal()">+ Add First Destination</button>
+      </div>`;
+    return;
+  }
+
+  filterBar.style.display = 'flex';
+  fab.style.display = 'flex';
+
+  // Filter buttons
+  const countries = [...new Set(destinations.map(d => d.country))];
+  const filterBtns = document.getElementById('filterBtns');
+  filterBtns.innerHTML =
+    `<button class="filter-btn ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>` +
+    countries.map(c =>
+      `<button class="filter-btn ${activeFilter===c?'active':''}" onclick="setFilter('${c.replace(/'/g,"\\'")}')">
+        ${c}
+       </button>`
+    ).join('');
+
+  const filtered = activeFilter === 'all' ? destinations : destinations.filter(d => d.country === activeFilter);
+  const filteredPhotos = filtered.reduce((s,d) => s + d.photos.length, 0);
+  document.getElementById('photoCountLabel').textContent = filteredPhotos + ' photo' + (filteredPhotos !== 1 ? 's' : '');
+
+  // Group by country
+  const byCountry = {};
+  filtered.forEach(d => {
+    if (!byCountry[d.country]) byCountry[d.country] = [];
+    byCountry[d.country].push(d);
+  });
+
+  area.innerHTML = '';
+  Object.entries(byCountry).forEach(([country, dests]) => {
+    const section = document.createElement('div');
+    section.className = 'dest-section';
+    const allPhotos = dests.flatMap(d => d.photos.map(p => ({...p, dest: d})));
+    const years = [...new Set(dests.map(d => d.year).filter(Boolean))].sort().join(', ');
+
+    section.innerHTML = `
+      <div class="dest-header">
+        <div class="dest-country">${country}</div>
+        <div class="dest-count">${dests.map(d=>d.city||d.country).join(' · ')}</div>
+        ${years ? `<div class="dest-year">${years}</div>` : ''}
+      </div>
+      ${renderPhotoGrid(allPhotos, country)}
+    `;
+    area.appendChild(section);
+  });
+}
+
+// Size patterns for visual interest
+const PATTERNS = [
+  ['large','med','sm','sm','tall','wide'],
+  ['wide','med','med','tall','sm','sm'],
+  ['tall','large','sm','sm','med','wide'],
+];
+
+function renderPhotoGrid(photos, country) {
+  if (photos.length === 0) {
+    return `<div class="photo-grid">
+      <div class="photo-card large" style="grid-column:span 12;" onclick="pickPhotosFor('${country}')">
+        <div class="photo-placeholder">
+          <span>📷</span>
+          <p>No photos yet for ${country}</p>
+          <div class="upload-hint">Click to add photos</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const pattern = PATTERNS[Math.abs(country.charCodeAt(0)) % PATTERNS.length];
+  let html = '<div class="photo-grid">';
+  photos.forEach((photo, i) => {
+    const size = pattern[i % pattern.length];
+    html += `
+      <div class="photo-card ${size}" onclick="openLightbox('${country}',${i})">
+        <img src="${photo.src}" alt="${photo.caption||photo.name||''}" loading="lazy">
+        <div class="photo-info">
+          <div class="photo-title">${photo.caption || photo.name || ''}</div>
+          ${photo.dest?.city ? `<div class="photo-date">${photo.dest.city}${photo.dest.year ? ' · ' + photo.dest.year : ''}</div>` : ''}
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// ── Filters ─────────────────────────────────────────────────────────
+function setFilter(val) {
+  activeFilter = val;
+  render();
+}
+
+// ── Lightbox ─────────────────────────────────────────────────────────
+function openLightbox(country, idx) {
+  const dests = destinations.filter(d => d.country === country);
+  lightboxPhotos = dests.flatMap(d => d.photos.map(p => ({...p, dest:d})));
+  lightboxIdx = idx;
+  showLightboxPhoto();
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function showLightboxPhoto() {
+  const p = lightboxPhotos[lightboxIdx];
+  if (!p) return;
+  document.getElementById('lightboxImg').src = p.src;
+  document.getElementById('lightboxCaption').textContent =
+    [p.caption || p.name, p.dest?.city, p.dest?.year].filter(Boolean).join(' · ');
+}
+function lightboxNav(dir, e) {
+  if (e) e.stopPropagation();
+  lightboxIdx = (lightboxIdx + dir + lightboxPhotos.length) % lightboxPhotos.length;
+  showLightboxPhoto();
+}
+function closeLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') && !e.target.classList.contains('lightbox-close')) return;
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  if (e.key === 'ArrowLeft')  lightboxNav(-1);
+  if (e.key === 'Escape')     closeLightbox({target: document.getElementById('lightbox')});
+});
+
+// ── Modal ────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('mCountry').focus();
+}
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  ['mCountry','mCity','mYear','mNotes'].forEach(id => document.getElementById(id).value = '');
+}
+function addDestination() {
+  const country = document.getElementById('mCountry').value.trim();
+  const city    = document.getElementById('mCity').value.trim();
+  const year    = document.getElementById('mYear').value.trim();
+  const notes   = document.getElementById('mNotes').value.trim();
+  if (!country) { document.getElementById('mCountry').focus(); return; }
+  const dest = { id: Date.now().toString(), country, city, year, notes, photos: [] };
+  destinations.unshift(dest);
+  save(destinations);
+  closeModal();
+  render();
+}
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+
+// ── Photo upload ─────────────────────────────────────────────────────
+let targetCountryForUpload = null;
+
+function pickPhotosFor(country) {
+  targetCountryForUpload = country;
+  document.getElementById('fileInput').click();
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  // If no specific destination targeted, pick the first one
+  if (!targetCountryForUpload && destinations.length > 0) {
+    targetCountryForUpload = destinations[0].country;
+  }
+  if (!targetCountryForUpload) { openModal(); return; }
+
+  const dest = destinations.find(d => d.country === targetCountryForUpload);
+  if (!dest) return;
+
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      dest.photos.push({
+        id: Date.now().toString() + Math.random().toString(36).slice(2,6),
+        name: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
+        src: ev.target.result,
+        caption: '',
+      });
+      loaded++;
+      if (loaded === files.length) {
+        save(destinations);
+        render();
+        targetCountryForUpload = null;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+});
+
+// Drag & drop on upload zone
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  // Simulate file input
+  const dt = new DataTransfer();
+  files.forEach(f => dt.items.add(f));
+  document.getElementById('fileInput').files = dt.files;
+  document.getElementById('fileInput').dispatchEvent(new Event('change'));
+});
+
+// ── Init ─────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>

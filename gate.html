@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FinSuite — Enter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#0e0e0f;
+  --cream:#f7f3ed;
+  --warm:#e8dfd0;
+  --gold:#c9a84c;
+  --electric:#00e5ff;
+  --muted:#8a8070;
+}
+html,body{height:100%;}
+body{
+  background:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+/* Ambient background */
+.bg{
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 60% 60% at 20% 80%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 20%, rgba(0,229,255,0.04) 0%, transparent 60%);
+}
+.bg-grid{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+/* Gate card */
+.gate{
+  position:relative;z-index:2;
+  width:100%;max-width:400px;
+  padding:0 24px;
+  animation:gate-in 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
+  opacity:0;transform:translateY(20px);
+}
+@keyframes gate-in{
+  to{opacity:1;transform:translateY(0);}
+}
+
+.gate-logo{
+  text-align:center;
+  margin-bottom:48px;
+}
+.gate-logo-mark{
+  font-family:'DM Mono',monospace;
+  font-size:1rem;font-weight:500;
+  letter-spacing:4px;text-transform:uppercase;
+  color:rgba(255,255,255,0.25);
+  display:block;margin-bottom:6px;
+}
+.gate-dot{
+  display:inline-block;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--electric);
+  box-shadow:0 0 10px var(--electric);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;}50%{opacity:0.3;}
+}
+
+.gate-title{
+  font-family:'Playfair Display',serif;
+  font-style:italic;
+  font-size:1.8rem;
+  color:rgba(255,255,255,0.85);
+  text-align:center;
+  margin-bottom:6px;
+}
+.gate-sub{
+  font-size:0.75rem;
+  color:rgba(255,255,255,0.25);
+  text-align:center;
+  letter-spacing:0.5px;
+  margin-bottom:40px;
+}
+
+.gate-form{
+  display:flex;flex-direction:column;gap:14px;
+}
+.gate-input-wrap{
+  position:relative;
+}
+.gate-input{
+  width:100%;
+  padding:14px 48px 14px 18px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;
+  color:#f0f0f0;
+  font-family:'DM Mono',monospace;
+  font-size:0.9rem;
+  letter-spacing:2px;
+  outline:none;
+  transition:border-color 0.2s,background 0.2s;
+}
+.gate-input:focus{
+  border-color:rgba(255,255,255,0.3);
+  background:rgba(255,255,255,0.08);
+}
+.gate-input.error{
+  border-color:rgba(255,80,80,0.6);
+  animation:shake 0.4s ease;
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%,60%{transform:translateX(-6px);}
+  40%,80%{transform:translateX(6px);}
+}
+.gate-eye{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;
+  color:rgba(255,255,255,0.25);font-size:1rem;
+  transition:color 0.2s;padding:0;
+}
+.gate-eye:hover{color:rgba(255,255,255,0.6);}
+
+.gate-btn{
+  padding:14px;
+  background:var(--electric);
+  color:var(--ink);
+  border:none;border-radius:6px;
+  font-family:'Syne',sans-serif;
+  font-size:0.82rem;font-weight:800;
+  letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;
+  transition:all 0.2s;
+  box-shadow:0 0 24px rgba(0,229,255,0.2);
+}
+.gate-btn:hover{
+  background:#33eaff;
+  box-shadow:0 0 40px rgba(0,229,255,0.4);
+  transform:translateY(-1px);
+}
+.gate-btn:active{transform:translateY(0);}
+
+.gate-error{
+  font-size:0.75rem;color:rgba(255,100,100,0.8);
+  text-align:center;
+  height:16px;transition:opacity 0.2s;
+  font-family:'DM Mono',monospace;
+}
+
+.gate-hint{
+  margin-top:32px;
+  text-align:center;
+  font-size:0.68rem;
+  color:rgba(255,255,255,0.15);
+  font-family:'DM Mono',monospace;
+  letter-spacing:0.3px;
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-grid"></div>
+
+<div class="gate">
+  <div class="gate-logo">
+    <span class="gate-logo-mark">FINSUITE</span>
+    <span class="gate-dot"></span>
+  </div>
+
+  <div class="gate-title">Welcome back.</div>
+  <div class="gate-sub">Private site — enter password to continue</div>
+
+  <div class="gate-form">
+    <div class="gate-input-wrap">
+      <input
+        type="password"
+        id="pwInput"
+        class="gate-input"
+        placeholder="••••••••"
+        autocomplete="current-password"
+        autofocus
+      >
+      <button class="gate-eye" id="eyeBtn" onclick="toggleVisible()" title="Show/hide password">👁</button>
+    </div>
+    <button class="gate-btn" onclick="checkPassword()">Enter →</button>
+    <div class="gate-error" id="errMsg"></div>
+  </div>
+
+  <div class="gate-hint">Session stays unlocked for 30 days</div>
+</div>
+
+<script>
+// ── Change this to your password ──
+const SITE_PASSWORD = 'MySitePassword2026';
+const SESSION_KEY   = 'finsuite_auth';
+const SESSION_DAYS  = 30;
+
+// Already authenticated?
+(function() {
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (stored) {
+    try {
+      const { expiry } = JSON.parse(stored);
+      if (Date.now() < expiry) {
+        redirect();
+      }
+    } catch(e) {}
+  }
+})();
+
+function redirect() {
+  const dest = new URLSearchParams(location.search).get('next') || 'index.html';
+  location.replace(dest);
+}
+
+function checkPassword() {
+  const val   = document.getElementById('pwInput').value;
+  const input = document.getElementById('pwInput');
+  const err   = document.getElementById('errMsg');
+
+  if (val === SITE_PASSWORD) {
+    // Save session
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      expiry: Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+    }));
+    // Brief success flash then redirect
+    document.querySelector('.gate-btn').textContent = '✓ Unlocked';
+    setTimeout(redirect, 400);
+  } else {
+    input.classList.add('error');
+    err.textContent = 'Incorrect password — try again';
+    setTimeout(() => {
+      input.classList.remove('error');
+      err.textContent = '';
+    }, 2000);
+    input.value = '';
+    input.focus();
+  }
+}
+
+function toggleVisible() {
+  const inp = document.getElementById('pwInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// Enter key support
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+</script>
+</body>
+</html>

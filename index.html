@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FinSuite — Personal Investment Tools</title>
+<script>
+// Auth gate — runs before anything renders
+(function(){
+  const SESSION_KEY = 'finsuite_auth';
+  const stored = localStorage.getItem(SESSION_KEY);
+  let ok = false;
+  if (stored) {
+    try { ok = Date.now() < JSON.parse(stored).expiry; } catch(e){}
+  }
+  if (!ok) location.replace('gate.html?next=index.html');
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#05080f;
+  --paper:#f5f3ee;
+  --electric:#00e5ff;
+  --gold:#f0c040;
+  --red:#ff4757;
+  --green:#2ed573;
+  --mid:#1a1f2e;
+  --border:rgba(255,255,255,0.08);
+  --muted:rgba(255,255,255,0.38);
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--ink);
+  color:#e8edf5;
+  font-family:'Syne',sans-serif;
+  overflow-x:hidden;
+  cursor:default;
+}
+
+/* ── TICKER TAPE ── */
+.ticker{
+  width:100%;
+  background:#0a0d16;
+  border-bottom:1px solid var(--border);
+  padding:9px 0;
+  overflow:hidden;
+  position:relative;
+  z-index:100;
+}
+.ticker::before,.ticker::after{
+  content:'';position:absolute;top:0;width:80px;height:100%;z-index:2;
+}
+.ticker::before{left:0;background:linear-gradient(to right,#0a0d16,transparent);}
+.ticker::after{right:0;background:linear-gradient(to left,#0a0d16,transparent);}
+.ticker-track{
+  display:flex;gap:0;white-space:nowrap;
+  animation:ticker-scroll 35s linear infinite;
+}
+.ticker-item{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:0 28px;
+  font-family:'Syne Mono',monospace;
+  font-size:0.72rem;
+  letter-spacing:0.3px;
+  border-right:1px solid var(--border);
+}
+.ticker-sym{color:rgba(255,255,255,0.6);font-weight:700;}
+.ticker-price{color:#e8edf5;}
+.ticker-chg.up{color:var(--green);}
+.ticker-chg.dn{color:var(--red);}
+@keyframes ticker-scroll{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:90;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;
+  height:60px;
+  background:rgba(5,8,15,0.85);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'Syne Mono',monospace;
+  font-size:1.05rem;
+  font-weight:700;
+  letter-spacing:1px;
+  color:var(--electric);
+  text-decoration:none;
+  display:flex;align-items:center;gap:8px;
+}
+.logo-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--electric);
+  box-shadow:0 0 8px var(--electric);
+  animation:pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot{
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:0.5;transform:scale(0.7);}
+}
+.nav-links{display:flex;gap:32px;align-items:center;}
+.nav-links a{
+  font-size:0.78rem;font-weight:700;
+  letter-spacing:0.8px;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;
+  transition:color 0.2s;
+}
+.nav-links a:hover{color:#e8edf5;}
+
+/* ── HERO ── */
+.hero{
+  position:relative;
+  min-height:90vh;
+  display:flex;align-items:center;
+  padding:80px 48px 80px;
+  overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 60% 40%,rgba(0,229,255,0.06) 0%,transparent 70%),
+             radial-gradient(ellipse 50% 50% at 80% 80%,rgba(108,40,217,0.08) 0%,transparent 60%);
+}
+/* Animated grid lines */
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%);
+}
+.hero-content{
+  position:relative;z-index:2;
+  max-width:680px;
+}
+.hero-eyebrow{
+  font-family:'Syne Mono',monospace;
+  font-size:0.7rem;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--electric);
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.hero-eyebrow::after{
+  content:'';display:block;height:1px;width:48px;background:var(--electric);opacity:0.5;
+}
+h1{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(3rem,7vw,5.5rem);
+  line-height:1.05;
+  color:#f0f4ff;
+  margin-bottom:24px;
+}
+h1 em{
+  font-style:italic;
+  color:var(--electric);
+}
+.hero-sub{
+  font-size:1.05rem;
+  color:rgba(232,237,245,0.6);
+  line-height:1.7;
+  max-width:520px;
+  margin-bottom:40px;
+}
+.hero-cta{
+  display:flex;gap:14px;flex-wrap:wrap;
+}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 28px;
+  background:var(--electric);
+  color:var(--ink);
+  font-family:'Syne',sans-serif;
+  font-size:0.82rem;font-weight:800;
+  letter-spacing:0.5px;text-transform:uppercase;
+  border-radius:4px;text-decoration:none;
+  transition:all 0.2s;
+  box-shadow:0 0 24px rgba(0,229,255,0.25);
+}
+.btn-primary:hover{
+  background:#33eaff;
+  box-shadow:0 0 40px rgba(0,229,255,0.4);
+  transform:translateY(-1px);
+}
+.btn-outline{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 28px;
+  border:1px solid rgba(255,255,255,0.2);
+  color:#e8edf5;
+  font-family:'Syne',sans-serif;
+  font-size:0.82rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  border-radius:4px;text-decoration:none;
+  transition:all 0.2s;
+  background:rgba(255,255,255,0.04);
+}
+.btn-outline:hover{
+  border-color:rgba(255,255,255,0.5);
+  background:rgba(255,255,255,0.08);
+}
+
+/* Hero right — floating app preview */
+.hero-visual{
+  position:absolute;right:-20px;top:50%;transform:translateY(-50%);
+  width:520px;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  opacity:0.75;
+  pointer-events:none;
+}
+.preview-card{
+  background:rgba(20,25,40,0.8);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  padding:14px 16px;
+  backdrop-filter:blur(8px);
+}
+.preview-card.span2{grid-column:span 2;}
+.preview-sym{font-family:'Syne Mono',monospace;font-size:0.72rem;color:var(--muted);}
+.preview-val{font-size:1.1rem;font-weight:800;color:#f0f4ff;margin:4px 0;}
+.preview-chg{font-family:'Syne Mono',monospace;font-size:0.72rem;}
+.preview-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.08);margin-top:8px;overflow:hidden;}
+.preview-bar-fill{height:100%;border-radius:2px;}
+
+/* ── STATS STRIP ── */
+.stats-strip{
+  display:flex;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:#080b14;
+}
+.stat-item{
+  flex:1;
+  padding:28px 32px;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:6px;
+}
+.stat-item:last-child{border-right:none;}
+.stat-num{
+  font-family:'Syne Mono',monospace;
+  font-size:2rem;font-weight:700;
+  color:var(--electric);
+  line-height:1;
+}
+.stat-label{
+  font-size:0.72rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  color:var(--muted);
+}
+
+/* ── APPS SECTION ── */
+.apps{padding:100px 48px;}
+.section-label{
+  font-family:'Syne Mono',monospace;
+  font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--electric);margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::before{
+  content:'';display:block;height:1px;width:32px;background:var(--electric);opacity:0.5;
+}
+.section-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(2rem,4vw,3rem);
+  color:#f0f4ff;margin-bottom:60px;
+}
+.apps-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:24px;
+}
+.app-card{
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  background:rgba(10,13,22,0.6);
+  transition:all 0.3s;
+  display:flex;flex-direction:column;
+}
+.app-card:hover{
+  border-color:rgba(0,229,255,0.3);
+  box-shadow:0 0 60px rgba(0,229,255,0.08);
+  transform:translateY(-3px);
+}
+.app-card-header{
+  padding:32px 32px 24px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,rgba(0,229,255,0.04) 0%,transparent 60%);
+}
+.app-card:nth-child(2) .app-card-header{
+  background:linear-gradient(135deg,rgba(108,40,217,0.07) 0%,transparent 60%);
+}
+.app-icon{
+  font-size:2.2rem;margin-bottom:16px;
+  display:block;
+}
+.app-name{
+  font-family:'DM Serif Display',serif;
+  font-size:1.6rem;color:#f0f4ff;
+  margin-bottom:8px;
+}
+.app-tagline{
+  font-size:0.88rem;color:rgba(232,237,245,0.55);
+  line-height:1.6;
+}
+.app-card-body{padding:24px 32px;flex:1;}
+.feature-list{
+  list-style:none;display:flex;flex-direction:column;gap:10px;
+  margin-bottom:28px;
+}
+.feature-list li{
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:0.82rem;color:rgba(232,237,245,0.7);
+  line-height:1.4;
+}
+.feature-list li::before{
+  content:'→';
+  color:var(--electric);
+  font-family:'Syne Mono',monospace;
+  font-size:0.72rem;
+  flex-shrink:0;margin-top:1px;
+}
+.app-card:nth-child(2) .feature-list li::before{color:#a78bfa;}
+.app-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 24px;
+  border-radius:4px;
+  font-size:0.78rem;font-weight:800;
+  letter-spacing:0.5px;text-transform:uppercase;
+  text-decoration:none;
+  transition:all 0.2s;
+}
+.app-cta-stocks{
+  background:var(--electric);color:var(--ink);
+  box-shadow:0 0 20px rgba(0,229,255,0.2);
+}
+.app-cta-stocks:hover{background:#33eaff;box-shadow:0 0 36px rgba(0,229,255,0.4);}
+.app-cta-portfolio{
+  background:#7c3aed;color:#fff;
+  box-shadow:0 0 20px rgba(124,58,237,0.3);
+}
+.app-cta-portfolio:hover{background:#6d28d9;box-shadow:0 0 36px rgba(124,58,237,0.5);}
+
+/* Tech stack tags */
+.app-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:20px;}
+.tag{
+  padding:3px 10px;border-radius:3px;
+  font-family:'Syne Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.3px;
+  background:rgba(255,255,255,0.06);
+  color:rgba(255,255,255,0.4);
+  border:1px solid rgba(255,255,255,0.07);
+}
+
+/* ── FEATURES MARQUEE ── */
+.marquee-section{
+  padding:60px 0;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:#080b14;
+  overflow:hidden;
+  position:relative;
+}
+.marquee-track{
+  display:flex;gap:0;
+  animation:marquee 30s linear infinite;
+  white-space:nowrap;
+}
+.marquee-item{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:0 40px;
+  font-size:0.82rem;font-weight:700;
+  letter-spacing:0.3px;
+  color:rgba(232,237,245,0.4);
+  border-right:1px solid var(--border);
+}
+.marquee-item span{color:var(--electric);font-size:1rem;}
+@keyframes marquee{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+
+/* ── ARCHITECTURE SECTION ── */
+.arch-section{
+  padding:100px 48px;
+  background:linear-gradient(180deg,var(--ink) 0%,#080b14 100%);
+}
+.arch-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:48px;
+}
+.arch-item{
+  padding:32px 28px;
+  background:#080b14;
+  display:flex;flex-direction:column;gap:10px;
+}
+.arch-icon{font-size:1.5rem;}
+.arch-name{
+  font-family:'Syne Mono',monospace;
+  font-size:0.75rem;font-weight:700;
+  letter-spacing:0.5px;text-transform:uppercase;
+  color:var(--electric);
+}
+.arch-desc{
+  font-size:0.82rem;color:rgba(232,237,245,0.5);line-height:1.5;
+}
+
+/* ── FOOTER ── */
+footer{
+  padding:48px;
+  border-top:1px solid var(--border);
+  background:#03040a;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;
+}
+.footer-logo{
+  font-family:'Syne Mono',monospace;
+  font-size:0.9rem;font-weight:700;
+  color:var(--electric);letter-spacing:1px;
+}
+.footer-note{
+  font-size:0.72rem;color:rgba(255,255,255,0.25);
+  font-family:'Syne Mono',monospace;
+}
+.footer-links{display:flex;gap:24px;}
+.footer-links a{
+  font-size:0.75rem;color:rgba(255,255,255,0.35);
+  text-decoration:none;transition:color 0.2s;
+}
+.footer-links a:hover{color:#e8edf5;}
+
+/* ── ANIMATIONS ── */
+.fade-in{
+  opacity:0;transform:translateY(24px);
+  animation:fade-in-up 0.7s ease forwards;
+}
+.fade-in:nth-child(2){animation-delay:0.1s;}
+.fade-in:nth-child(3){animation-delay:0.2s;}
+.fade-in:nth-child(4){animation-delay:0.3s;}
+@keyframes fade-in-up{
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .hero-visual{display:none;}
+  .apps-grid{grid-template-columns:1fr;}
+  .arch-grid{grid-template-columns:1fr;}
+  .stats-strip{flex-direction:column;}
+  .stat-item{border-right:none;border-bottom:1px solid var(--border);}
+  nav{padding:0 20px;}
+  .hero,.apps,.arch-section{padding-left:20px;padding-right:20px;}
+  footer{padding:32px 20px;}
+  .nav-links{gap:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TICKER TAPE -->
+<div class="ticker">
+  <div class="ticker-track" id="ticker">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="/">
+    <span class="logo-dot"></span>
+    FINSUITE
+  </a>
+  <div class="nav-links">
+    <a href="#apps">Apps</a>
+    <a href="travel/">✈️ Travel</a>
+    <a href="#features">Features</a>
+    <a href="#stack">Stack</a>
+    <a href="stocks/" style="color:var(--electric);">Launch →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow fade-in">Personal Finance · Built Different</div>
+    <h1 class="fade-in">Track Every<br><em>Dollar.</em><br>Own Every<br>Decision.</h1>
+    <p class="hero-sub fade-in">Two powerful apps — a real-time stocks & funds tracker and a full retirement portfolio manager. Firebase-backed, Firestore-synced, built to handle serious portfolios.</p>
+    <div class="hero-cta fade-in">
+      <a href="stocks/" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        Stocks Tracker
+      </a>
+      <a href="portfolio/" class="btn-outline">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        Portfolio App
+      </a>
+    </div>
+  </div>
+
+  <!-- Floating preview cards -->
+  <div class="hero-visual">
+    <div class="preview-card">
+      <div class="preview-sym">AAPL</div>
+      <div class="preview-val">$189.24</div>
+      <div class="preview-chg" style="color:var(--green);">▲ +2.14%</div>
+      <div class="preview-bar"><div class="preview-bar-fill" style="width:74%;background:var(--green);"></div></div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-sym">NVDA</div>
+      <div class="preview-val">$875.00</div>
+      <div class="preview-chg" style="color:var(--red);">▼ -0.83%</div>
+      <div class="preview-bar"><div class="preview-bar-fill" style="width:88%;background:var(--electric);"></div></div>
+    </div>
+    <div class="preview-card span2">
+      <div class="preview-sym">TOTAL PORTFOLIO VALUE</div>
+      <div class="preview-val" style="font-size:1.6rem;">$1,629,948</div>
+      <div style="display:flex;gap:16px;margin-top:8px;">
+        <div><div class="preview-sym">UNREALIZED</div><div style="color:var(--green);font-size:0.88rem;font-weight:700;">+$649,240</div></div>
+        <div><div class="preview-sym">TODAY</div><div style="color:var(--green);font-size:0.88rem;font-weight:700;">+$7,614</div></div>
+        <div><div class="preview-sym">CAGR</div><div style="color:var(--electric);font-size:0.88rem;font-weight:700;">+8.2%</div></div>
+      </div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-sym">401(k)</div>
+      <div class="preview-val">$412K</div>
+      <div class="preview-chg" style="color:var(--green);">IRS limit: $32,500</div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-sym">ROTH IRA</div>
+      <div class="preview-val">$218K</div>
+      <div class="preview-chg" style="color:#a78bfa;">Tax-free growth</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stat-item fade-in">
+    <div class="stat-num">30+</div>
+    <div class="stat-label">Toolbar Features</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Account Types Tracked</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-num">20+</div>
+    <div class="stat-label">Currencies Supported</div>
+  </div>
+  <div class="stat-item fade-in">
+    <div class="stat-num">100%</div>
+    <div class="stat-label">Free to Use</div>
+  </div>
+</div>
+
+<!-- APPS SECTION -->
+<section class="apps" id="apps">
+  <div class="section-label">The Apps</div>
+  <div class="section-title">Two tools.<br>One financial picture.</div>
+  <div class="apps-grid">
+
+    <!-- Stocks Tracker -->
+    <div class="app-card fade-in">
+      <div class="app-card-header">
+        <span class="app-icon">📊</span>
+        <div class="app-name">Stocks & Funds Tracker</div>
+        <p class="app-tagline">Real-time prices, FIFO tax lots, 16 analysis tools. Track stocks, ETFs, mutual funds, and your watchlist — all in one live dashboard.</p>
+      </div>
+      <div class="app-card-body">
+        <ul class="feature-list">
+          <li>Live prices via Finnhub · Alpha Vantage · FMP APIs</li>
+          <li>📊 Fundamentals per card: P/E, EPS, Beta, Dividend Yield, 52W range</li>
+          <li>📓 Trade Journal with FIFO P/L, hold time, win rate</li>
+          <li>🔔 Smart Alert Suggestions based on your cost basis</li>
+          <li>📊 Benchmark comparison vs SPY, QQQ, DIA</li>
+          <li>⚖️ Position concentration warnings with bar chart</li>
+          <li>📄 Schedule D export for tax filing</li>
+          <li>💱 Live currency conversion in 20+ currencies</li>
+          <li>📅 Contribution calendar heatmap · 💰 Dividend income calendar</li>
+        </ul>
+        <a href="stocks/" class="app-cta app-cta-stocks">
+          Open Stocks Tracker →
+        </a>
+        <div class="app-tags">
+          <span class="tag">Firebase</span>
+          <span class="tag">Finnhub API</span>
+          <span class="tag">Chart.js</span>
+          <span class="tag">Yahoo Finance</span>
+          <span class="tag">Firestore</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 401k App -->
+    <div class="app-card fade-in">
+      <div class="app-card-header">
+        <span class="app-icon">💼</span>
+        <div class="app-name">401k Investment App</div>
+        <p class="app-tagline">Full retirement portfolio manager across 401(k), Roth IRA, Brokerage, and 529. Plan withdrawals, optimize taxes, and project your future.</p>
+      </div>
+      <div class="app-card-body">
+        <ul class="feature-list">
+          <li>Tracks 401(k) · Roth IRA · Brokerage · 529 · HSA</li>
+          <li>🏖️ Withdrawal Planner with RMDs & sequence-of-returns risk</li>
+          <li>🔄 Roth Conversion Analyzer with break-even age</li>
+          <li>⚖️ Cost Basis Optimizer: FIFO / LIFO / Highest / Lowest Cost</li>
+          <li>📋 Year-End Tax Planning checklist with harvesting candidates</li>
+          <li>💵 Paycheck Calc: Roth vs Traditional routing by tax bracket</li>
+          <li>🎓 529 College Projector · 🏥 HSA Stealth Retirement Tracker</li>
+          <li>📈 Performance Timeline with CAGR, best/worst month</li>
+          <li>IRS 2026 contribution limits with age-based catch-up</li>
+        </ul>
+        <a href="portfolio/" class="app-cta app-cta-portfolio">
+          Open Portfolio App →
+        </a>
+        <div class="app-tags">
+          <span class="tag">Firebase</span>
+          <span class="tag">Firestore</span>
+          <span class="tag">Chart.js</span>
+          <span class="tag">SECURE 2.0</span>
+          <span class="tag">IRS 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Travel teaser card -->
+  <div style="margin-top:24px;padding:28px 32px;border:1px solid rgba(255,255,255,0.07);border-radius:12px;background:rgba(10,13,22,0.4);display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+    <span style="font-size:2rem;">✈️</span>
+    <div style="flex:1;">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#f0f4ff;margin-bottom:4px;">Travel Journal</div>
+      <div style="font-size:0.82rem;color:rgba(232,237,245,0.45);line-height:1.5;">Photo albums organized by destination. Add photos, browse by country, and relive every trip.</div>
+    </div>
+    <a href="travel/" style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);color:#e8edf5;font-size:0.75rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;text-decoration:none;transition:all 0.2s;background:rgba(255,255,255,0.04);" onmouseover="this.style.borderColor='rgba(255,255,255,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)'">
+      View Albums →
+    </a>
+  </div>
+</section>
+
+<!-- FEATURES MARQUEE -->
+<div class="marquee-section" id="features">
+  <div class="marquee-track" id="marquee">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- ARCHITECTURE SECTION -->
+<section class="arch-section" id="stack">
+  <div class="section-label">Tech Stack</div>
+  <div class="section-title">Built on solid<br>foundations.</div>
+  <div class="arch-grid">
+    <div class="arch-item">
+      <div class="arch-icon">🔥</div>
+      <div class="arch-name">Firebase Auth</div>
+      <div class="arch-desc">Google Sign-In. Your data is yours — siloed per user, never shared. Sign in on any device to access your portfolio instantly.</div>
+    </div>
+    <div class="arch-item">
+      <div class="arch-icon">🗄️</div>
+      <div class="arch-name">Cloud Firestore</div>
+      <div class="arch-desc">All settings, API keys, transactions, and preferences stored in Firestore — not localStorage. Real-time sync across every device.</div>
+    </div>
+    <div class="arch-item">
+      <div class="arch-icon">📡</div>
+      <div class="arch-name">Finnhub API</div>
+      <div class="arch-desc">Real-time stock quotes, company fundamentals, 52-week data, earnings calendar, and news. Bring your own API key.</div>
+    </div>
+    <div class="arch-item">
+      <div class="arch-icon">📈</div>
+      <div class="arch-name">Chart.js</div>
+      <div class="arch-desc">All portfolio charts, performance timelines, benchmark comparisons, and contribution calendars powered by Chart.js with custom theming.</div>
+    </div>
+    <div class="arch-item">
+      <div class="arch-icon">🌐</div>
+      <div class="arch-name">Yahoo Finance</div>
+      <div class="arch-desc">Historical price data for portfolio history charts, benchmark data (SPY/QQQ/DIA), and mutual fund pricing — via public API.</div>
+    </div>
+    <div class="arch-item">
+      <div class="arch-icon">⚡</div>
+      <div class="arch-name">GitHub Pages</div>
+      <div class="arch-desc">Hosted as pure static HTML. No server, no build step, no dependencies. Works offline after first load. Free forever.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">FINSUITE</div>
+  <div class="footer-links">
+    <a href="stocks/">Stocks Tracker</a>
+    <a href="portfolio/">Portfolio App</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-note">Personal use only · Not financial advice · Data from public APIs</div>
+</footer>
+
+<script>
+// ── Ticker tape data
+const tickers = [
+  {sym:'AAPL',price:'189.24',chg:'+2.14%',up:true},
+  {sym:'NVDA',price:'875.00',chg:'-0.83%',up:false},
+  {sym:'VOO', price:'485.50',chg:'+0.61%',up:true},
+  {sym:'TSLA',price:'247.13',chg:'+3.41%',up:true},
+  {sym:'MSFT',price:'415.60',chg:'-0.22%',up:false},
+  {sym:'SPY', price:'540.18',chg:'+0.43%',up:true},
+  {sym:'QQQ', price:'460.72',chg:'+0.89%',up:true},
+  {sym:'AMZN',price:'187.45',chg:'-0.55%',up:false},
+  {sym:'GOOG',price:'173.10',chg:'+1.12%',up:true},
+  {sym:'META',price:'520.33',chg:'+2.07%',up:true},
+  {sym:'BRK.B',price:'410.88',chg:'+0.18%',up:true},
+  {sym:'VTI', price:'228.44',chg:'+0.51%',up:true},
+];
+const tickerEl = document.getElementById('ticker');
+const doubled  = [...tickers,...tickers];
+tickerEl.innerHTML = doubled.map(t=>`
+  <span class="ticker-item">
+    <span class="ticker-sym">${t.sym}</span>
+    <span class="ticker-price">${t.price}</span>
+    <span class="ticker-chg ${t.up?'up':'dn'}">${t.up?'▲':'▼'} ${t.chg}</span>
+  </span>`).join('');
+
+// ── Marquee features
+const features = [
+  '📊 Portfolio Snapshot','🧾 Tax Summary','📅 Contribution Calendar',
+  '🔮 What-If Simulator','🎯 Goal Projection','⚖️ Rebalancer',
+  '🔁 Recurring Buys','🔔 Smart Alerts','📊 Benchmark vs SPY/QQQ/DIA',
+  '📓 Trade Journal','💰 Dividend Calendar','📉 Perf Stats',
+  '🏖️ Withdrawal Planner','🔄 Roth Conversion','⚖️ Cost Basis Optimizer',
+  '📋 Year-End Tax Plan','💵 Paycheck Calculator','🎓 529 Projector',
+  '🏥 HSA Tracker','📈 Performance Timeline','📄 Schedule D Export',
+  '💱 20+ Currencies','⏱ Stale Price Detection','🌙 Firestore Dark Mode Sync',
+];
+const marqueeEl = document.getElementById('marquee');
+const doubledF = [...features,...features];
+marqueeEl.innerHTML = doubledF.map(f=>
+  `<span class="marquee-item"><span>✦</span>${f}</span>`
+).join('');
+
+// ── Intersection observer for fade-ins
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.animationPlayState = 'running';
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => {
+  el.style.animationPlayState = 'paused';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
