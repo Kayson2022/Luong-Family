@@ -616,8 +616,21 @@
             max-height: 0;
             opacity: 0;
             overflow: hidden;
-            transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.5s ease-in-out;
+            transition: max-height 0.6s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.5s ease-in-out;
             margin-top: 0;
+        }
+        .stock-card.expanded .card-chart-container,
+        .fund-card.expanded .card-chart-container {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 20px;
+            overflow: visible;
+        }
+        .card-chart-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 220px !important;
+            min-height: 220px;
         }
         .card-tap-hint {
             text-align: center;
@@ -627,12 +640,6 @@
             padding: 6px 0 2px;
             letter-spacing: 0.3px;
             user-select: none;
-        }
-        .stock-card.expanded .card-chart-container,
-        .fund-card.expanded .card-chart-container {
-            max-height: 300px; /* Adjust as needed */
-            opacity: 1;
-            margin-top: 20px;
         }
         .chart-controls {
             display: flex;
@@ -3991,7 +3998,7 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 
 // --- Historical Data Fetch ---
             async fetchHistoricalData(symbol) {
-                var ranges = ['ALL', '1Y', '6M'];
+                var ranges = ['1Y', 'ALL', '6M'];  // 1Y first = daily data, smoother charts
                 for (var ri = 0; ri < ranges.length; ri++) {
                     try {
                         console.log('[Chart] trying range:', ranges[ri]);
@@ -6008,7 +6015,9 @@ renderPortfolioSummary() {
                                 <button class="chart-range-btn" data-range="5Y">5Y</button>
                                 <button class="chart-range-btn" data-range="All">All</button>
                             </div>
+                            <div style="position:relative;height:220px;width:100%;">
                             <canvas id="chart-${item.id}" onclick="event.stopPropagation()"></canvas>
+                            </div>
                         </div>`;
                     
                     let isClosedPosition = false;
@@ -6332,6 +6341,8 @@ getOldestTransactionDate(item) {
                         timeUnit = 'year';
                     }
 
+                    console.log('[Render] chartData points:', chartData.length, 'canvas:', canvas.id, 'w:', canvas.offsetWidth, 'h:', canvas.offsetHeight, 'ctx:', !!ctx);
+
                     this.cardChartInstances[chartId] = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -6379,7 +6390,7 @@ getOldestTransactionDate(item) {
 
                 } catch (error) {
                     canvas._renderPending = false;
-                    // Catch the error thrown if API key is missing or API limits hit.
+                    console.error('[Render] Chart error:', error.message, error.stack);
                     console.error(`Chart rendering error for ${symbol}:`, error);
                     // The error message is already drawn in the catch block above (drawError) if needed.
                 }
@@ -9809,7 +9820,7 @@ body.dark-mode #sticky-mini-bar { background: rgba(34,37,46,0.95); }
 
 /* ── Keyboard shortcut hint badge ── */
 #kbd-hint {
-  position:fixed; bottom:70px; left:16px; z-index:1100;
+  position:fixed; bottom:70px; right:16px; left:auto; z-index:1100;
   background:var(--bg-secondary); border:1px solid var(--border-color);
   border-radius:10px; padding:12px 16px; font-size:0.8rem;
   color:var(--text-primary); box-shadow:0 8px 24px rgba(0,0,0,0.18);
@@ -9822,7 +9833,7 @@ body.dark-mode #sticky-mini-bar { background: rgba(34,37,46,0.95); }
   border-radius:4px; padding:2px 6px; font-size:0.75rem; font-family:monospace;
 }
 #kbd-toggle-btn {
-  position:fixed; bottom:16px; left:16px; z-index:1100;
+  position:fixed; bottom:16px; right:16px; left:auto; z-index:1100;
   background:var(--bg-secondary); border:1px solid var(--border-color);
   border-radius:50%; width:36px; height:36px;
   display:flex; align-items:center; justify-content:center;
@@ -12872,16 +12883,17 @@ function _bmIndex(series) {
 
 // Build portfolio value indexed series from window._tlFullHistory
 function _bmPortfolioSeries(rangeKey) {
-  const hist = window._tlFullHistory || [];
+  const tracker = window.stockTracker;
+  // Use portfolioHistory (stored in Firestore, populated on load)
+  const hist = (tracker && tracker.portfolioHistory) ? tracker.portfolioHistory : [];
   if (hist.length === 0) return null;
   const now = new Date();
   const cutoffs = { '1Y': 365, '3Y': 365*3, '5Y': 365*5 };
   const days = cutoffs[rangeKey] || 365;
   const cutoff = new Date(now.getTime() - days * 24*60*60*1000);
-  // Weekly sampling to match benchmark frequency
   const filtered = hist.filter(p => new Date(p.date) >= cutoff);
   if (filtered.length < 2) return null;
-  // Sample ~weekly
+  // Sample ~weekly to match benchmark frequency
   const step = Math.max(1, Math.floor(filtered.length / 52));
   const sampled = filtered.filter((_, i) => i % step === 0 || i === filtered.length - 1);
   return sampled;
@@ -12943,7 +12955,7 @@ window.renderBenchmark = async function renderBenchmark() {
         <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent-primary,#3498db);margin-bottom:4px;">📈 Your Portfolio</div>
         <div style="font-size:1.4rem;font-weight:800;color:${colorR(portReturn)};">${fmtR(portReturn)}</div>
         <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">${rangeKey} total return</div>
-        ${!hasPortfolio ? '<div style="font-size:0.7rem;color:var(--color-negative,#e74c3c);margin-top:4px;">⚠ Load chart history first (click 1Y on main chart)</div>' : ''}
+        ${!hasPortfolio ? '<div style="font-size:0.7rem;color:var(--color-negative,#e74c3c);margin-top:4px;">⚠ Not enough portfolio history yet. History builds daily as prices refresh.</div>' : ''}
       </div>`;
 
     const bmCards = BENCHMARKS.map((b, i) => {
@@ -13366,6 +13378,52 @@ window.renderDivCalendar = function renderDivCalendar() {
       <td style="padding:5px 8px;text-align:right;color:var(--text-secondary);">${fc(s.annual/12)}/mo</td>
     </tr>`).join('');
 
+  // ── Predicted next payouts per symbol ─────────────────────────────────
+  const fmtDate = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  const nextPayoutRows = all.map(item => {
+    const divs = (item.dividends||[]).slice().sort((a,b) => new Date(b.date)-new Date(a.date));
+    if (divs.length < 2) return null;
+
+    // Detect frequency from gaps
+    const dates = divs.map(d => new Date(d.date)).filter(d => !isNaN(d));
+    const gaps = [];
+    for (let i = 0; i < Math.min(dates.length-1, 6); i++) {
+      gaps.push(Math.round((dates[i]-dates[i+1])/86400000));
+    }
+    const avgGap = gaps.reduce((s,g)=>s+g,0)/gaps.length;
+    let freqDays, freqLabel;
+    if (avgGap < 45)       { freqDays=30;  freqLabel='Monthly'; }
+    else if (avgGap < 120) { freqDays=91;  freqLabel='Quarterly'; }
+    else if (avgGap < 240) { freqDays=182; freqLabel='Semi-Annual'; }
+    else                   { freqDays=365; freqLabel='Annual'; }
+
+    // Predict next date
+    const lastDate = dates[0];
+    let predicted = new Date(lastDate.getTime() + freqDays*86400000);
+    if (predicted < now) predicted = new Date(predicted.getTime() + freqDays*86400000);
+    const daysUntil = Math.round((predicted-now)/86400000);
+
+    // Last dividend amount
+    const lastAmt = parseFloat(divs[0].totalAmount)||0;
+    const stats = tracker.calculateTransactionStats(item.transactions, item.price);
+    const shares = stats.totalSharesOwned || 0;
+
+    return { symbol: item.symbol, predicted, daysUntil, freqLabel, freqDays, lastAmt, shares, lastDate, divs };
+  }).filter(Boolean).sort((a,b) => a.daysUntil - b.daysUntil);
+
+  const nextRows = nextPayoutRows.map(r => {
+    const urgency = r.daysUntil <= 7 ? 'color:#f39c12;font-weight:700;' :
+                    r.daysUntil <= 30 ? 'color:var(--color-positive,#27ae60);font-weight:700;' :
+                    'color:var(--text-secondary);';
+    return `<tr style="border-bottom:0.5px solid var(--border-color);font-size:0.8rem;">
+      <td style="padding:6px 8px;font-weight:700;">${r.symbol}</td>
+      <td style="padding:6px 8px;${urgency}">${fmtDate(r.predicted)} <span style="font-size:0.68rem;color:#f39c12;">(~${r.daysUntil}d)</span></td>
+      <td style="padding:6px 8px;text-align:right;color:var(--text-secondary);font-size:0.75rem;">${r.freqLabel}</td>
+      <td style="padding:6px 8px;text-align:right;color:var(--color-positive,#27ae60);">${fc(r.lastAmt)}</td>
+    </tr>`;
+  }).join('');
+
   el.innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <div style="padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
@@ -13383,7 +13441,7 @@ window.renderDivCalendar = function renderDivCalendar() {
     </div>
     <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin-bottom:18px;padding:0 4px;">${calBars}</div>
     ${bySymbol.length ? `
-    <table style="width:100%;border-collapse:collapse;">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
       <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.7rem;color:var(--text-secondary);">
         <th style="padding:5px 8px;text-align:left;">Symbol</th>
         <th style="padding:5px 8px;text-align:right;">Trailing 12M</th>
@@ -13392,6 +13450,22 @@ window.renderDivCalendar = function renderDivCalendar() {
       </tr></thead>
       <tbody>${symRows}</tbody>
     </table>` : '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No dividend history yet. Use 💰 Dividend Tracker to fetch data.</p>'}
+
+    ${nextPayoutRows.length ? `
+    <div style="margin-top:4px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-secondary);margin-bottom:8px;">📅 Predicted Next Payouts</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.7rem;color:var(--text-secondary);">
+          <th style="padding:5px 8px;text-align:left;">Symbol</th>
+          <th style="padding:5px 8px;text-align:left;">Est. Date</th>
+          <th style="padding:5px 8px;text-align:right;">Frequency</th>
+          <th style="padding:5px 8px;text-align:right;">Last Amt</th>
+        </tr></thead>
+        <tbody>${nextRows}</tbody>
+      </table>
+      <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:6px;">Predictions based on your recorded dividend history. Dates are estimates only.</p>
+    </div>` : ''}
+
     <p style="font-size:0.68rem;color:var(--text-secondary);margin-top:10px;">Actual ${year} payments. Yield on cost = trailing 12-month dividends ÷ cost basis.</p>`;
 };
 
