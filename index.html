@@ -6015,7 +6015,9 @@ renderPortfolioSummary() {
                                 <button class="chart-range-btn" data-range="5Y">5Y</button>
                                 <button class="chart-range-btn" data-range="All">All</button>
                             </div>
-                            <canvas id="chart-${item.id}" height="220" onclick="event.stopPropagation()"></canvas>
+                            <div style="position:relative;height:220px;width:100%;">
+                            <canvas id="chart-${item.id}" onclick="event.stopPropagation()"></canvas>
+                            </div>
                         </div>`;
                     
                     let isClosedPosition = false;
