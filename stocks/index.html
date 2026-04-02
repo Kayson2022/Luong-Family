@@ -619,6 +619,15 @@
             transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.5s ease-in-out;
             margin-top: 0;
         }
+        .card-tap-hint {
+            text-align: center;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            opacity: 0.45;
+            padding: 6px 0 2px;
+            letter-spacing: 0.3px;
+            user-select: none;
+        }
         .stock-card.expanded .card-chart-container,
         .fund-card.expanded .card-chart-container {
             max-height: 300px; /* Adjust as needed */
@@ -2735,17 +2744,6 @@ body.dark-mode .modal-content {
     }
 }
 
-/* ── Card expand trigger ──────────────────────────────── */
-.card-expand-trigger { display: block; cursor: pointer; }
-.card-expand-hint {
-    text-align: center;
-    font-size: 0.62rem;
-    color: var(--text-secondary);
-    opacity: 0.4;
-    padding: 4px 0 2px;
-    letter-spacing: 0.3px;
-    user-select: none;
-}
 
 </style>
 
@@ -3349,31 +3347,6 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
     This is your full JavaScript block with the Firebase library
     version updated for better performance and stability.
     -->
-<script>
-// Card chart expand/collapse — plain script so onclick can reach it
-window.stToggleCardChart = function(triggerEl) {
-  var card = triggerEl.closest('.stock-card, .fund-card');
-  if (!card) return;
-  if (card.classList.contains('closed-position')) return;
-  var wasExpanded = card.classList.contains('expanded');
-  card.classList.toggle('expanded');
-  var hint = card.querySelector('.card-expand-hint');
-  if (hint) hint.textContent = wasExpanded ? '▼ tap to see chart' : '▲ tap to collapse';
-  if (!wasExpanded) {
-    var symbol = card.dataset.symbol;
-    // stockTracker may not exist yet — retry until it does
-    var tries = 0;
-    function tryRender() {
-      if (window.stockTracker && window.stockTracker.renderCardChart) {
-        window.stockTracker.renderCardChart(symbol, '1Y');
-      } else if (tries++ < 20) {
-        setTimeout(tryRender, 200);
-      }
-    }
-    tryRender();
-  }
-};
-</script>
 <script type="module">
         // RECOMMENDATION: Updated Firebase to a newer, more stable version.
                 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
@@ -4004,59 +3977,41 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 
 // --- Historical Data Fetch (Uses Alpha Vantage) ---
             async fetchHistoricalData(symbol) {
-                // Use range= parameter (not period1/period2) — same pattern that works
-                // for the existing chart range fetches in the app
-                const BASE = 'https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/';
-                const url  = `${BASE}${encodeURIComponent(symbol)}?interval=1d&range=5y`;
-
-                const parseYahoo = (json) => {
-                    const r = json?.chart?.result?.[0];
-                    if (!r) return null;
-                    const ts = r.timestamp || [];
-                    const cl = r.indicators?.quote?.[0]?.close || [];
-                    if (!ts.length) return null;
-                    const data = {};
-                    ts.forEach((t, i) => {
-                        if (cl[i] == null) return;
-                        data[new Date(t * 1000).toISOString().split('T')[0]] = { '4. close': String(cl[i]) };
-                    });
-                    return Object.keys(data).length > 0 ? data : null;
-                };
-
-                // Try corsproxy with range= (this pattern already works in the app)
+                // Try Yahoo Finance first (free, no key needed)
                 try {
+                    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5y`;
                     const res = await fetch(url, { cache: 'no-store' });
                     if (res.ok) {
                         const json = await res.json();
-                        const data = parseYahoo(json);
-                        if (data) return { success: true, data, source: 'yahoo' };
+                        const r = json && json.chart && json.chart.result && json.chart.result[0];
+                        if (r && r.timestamp && r.timestamp.length) {
+                            const closes = r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close || [];
+                            const data = {};
+                            r.timestamp.forEach(function(ts, i) {
+                                if (closes[i] == null) return;
+                                data[new Date(ts * 1000).toISOString().split('T')[0]] = { '4. close': String(closes[i]) };
+                            });
+                            if (Object.keys(data).length > 0) return { success: true, data: data, source: 'yahoo' };
+                        }
                     }
-                } catch(e) { console.warn('Yahoo/corsproxy 5y failed:', e.message); }
-
-                // Try allorigins as second proxy
-                try {
-                    const rawUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5y`;
-                    const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(rawUrl), { cache: 'no-store' });
-                    if (res.ok) {
-                        const json = await res.json();
-                        const data = parseYahoo(json);
-                        if (data) return { success: true, data, source: 'yahoo' };
-                    }
-                } catch(e) { console.warn('allorigins failed:', e.message); }
+                } catch(e) { /* fall through */ }
 
                 // Fallback: Alpha Vantage
-                if (this.config.alphaVantageKey && this.config.alphaVantageKey !== 'YOUR_ALPHA_VANTAGE_KEY') {
-                    try {
-                        const avUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${this.config.alphaVantageKey}`;
-                        const response = await fetch(avUrl);
-                        if (!response.ok) throw new Error('HTTP ' + response.status);
-                        const json = await response.json();
-                        if (!json['Time Series (Daily)']) throw new Error(json['Information'] || 'No data');
-                        return { success: true, data: json['Time Series (Daily)'], source: 'alphavantage' };
-                    } catch(e) { console.warn('Alpha Vantage failed:', e.message); }
+                if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
+                    return { success: false, reason: "Add an Alpha Vantage key in Settings, or check your internet connection." };
                 }
-
-                return { success: false, reason: 'Chart data unavailable. Try again in a moment.' };
+                const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${this.config.alphaVantageKey}`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) return { success: false, reason: 'HTTP Error: ' + response.status };
+                    const json = await response.json();
+                    if (json["Error Message"] || !json["Time Series (Daily)"]) {
+                        return { success: false, reason: json["Information"] || json["Error Message"] || 'Invalid API payload.' };
+                    }
+                    return { success: true, data: json["Time Series (Daily)"] };
+                } catch (error) {
+                    return { success: false, symbol: symbol, reason: error.message };
+                }
             }
             
             // --- NEW: Finnhub News Fetch (Primary News Source) ---
@@ -4673,7 +4628,7 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
             
             handleCardAction(event) {
                 // 1. Check for specific buttons first — these should NOT trigger card expand
-                const clickedButton = event.target.closest('.transaction-btn, .edit-btn, .edit-transaction-btn, .delete-transaction-btn, .set-alert-btn, .move-to-portfolio-btn, .chart-range-btn, .card-news-btn, .add-btn, .remove-btn');
+                const clickedButton = event.target.closest('.transaction-btn, .edit-btn, .edit-transaction-btn, .delete-transaction-btn, .set-alert-btn, .move-to-portfolio-btn, .chart-range-btn');
                 
                 // 2. FIX: Check for Transaction Header (Arrow) Click BEFORE checking for the general card click
                 const transactionHeader = event.target.closest('.transaction-header');
@@ -4706,28 +4661,16 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                 }
 
                 // 4. Handle General Card Click (Expand/Collapse Chart)
-                // Fires when clicking anywhere on card that isn't a button or collapsible section
                 if (!clickedButton && event.target.closest('.stock-card, .fund-card')) {
-                    // Ignore clicks on collapsible section rows, actions area, transactions
-                    const ignore = event.target.closest(
-                        '.card-news-section, [id^="pt-section-"], [id^="fund-section-"], ' +
-                        '[id^="earn-section-"], [id^="divnext-section-"], ' +
-                        '.card-actions, .transaction-details, .card-chart-container, ' +
-                        '.total-pl, .card-expand-hint'
-                    );
-                    if (ignore) return;
-
                     const card = event.target.closest('.stock-card, .fund-card');
-                    if (!card || card.classList.contains('closed-position')) return;
-
-                    const wasExpanded = card.classList.contains('expanded');
-                    card.classList.toggle('expanded');
-
-                    const hint = card.querySelector('.card-expand-hint');
-                    if (hint) hint.textContent = wasExpanded ? '▼ tap to see chart' : '▲ tap to collapse';
-
-                    if (!wasExpanded) {
-                        this.renderCardChart(card.dataset.symbol, '1Y');
+                    if (card) {
+                        if (card.classList.contains('closed-position')) return;
+                        card.classList.toggle('expanded');
+                        const hint = card.querySelector('.card-tap-hint');
+                        if (hint) hint.textContent = card.classList.contains('expanded') ? '▲ tap to collapse' : '▼ tap card to see chart';
+                        if (card.classList.contains('expanded')) {
+                            this.renderCardChart(card.dataset.symbol);
+                        }
                     }
                     return;
                 }
@@ -6040,14 +5983,14 @@ renderPortfolioSummary() {
                     let cardChartHTML = `
                         <div class="card-chart-container">
                             <div class="chart-controls">
-                                <button class="chart-range-btn" data-range="1W" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','1W')">1W</button>
-                                <button class="chart-range-btn" data-range="1M" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','1M')">1M</button>
-                                <button class="chart-range-btn" data-range="6M" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','6M')">6M</button>
-                                <button class="chart-range-btn" data-range="YTD" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','YTD')">YTD</button>
-                                <button class="chart-range-btn active" data-range="1Y" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','1Y')">1Y</button>
-                                <button class="chart-range-btn" data-range="3Y" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','3Y')">3Y</button>
-                                <button class="chart-range-btn" data-range="5Y" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','5Y')">5Y</button>
-                                <button class="chart-range-btn" data-range="All" onclick="event.stopPropagation();(function(b){var c=b.closest('.stock-card,.fund-card');if(c)c.classList.add('expanded');})(this);window.stockTracker&&window.stockTracker.renderCardChart('${item.symbol}','All')">All</button>
+                                <button class="chart-range-btn" data-range="1W">1W</button>
+                                <button class="chart-range-btn" data-range="1M">1M</button>
+                                <button class="chart-range-btn" data-range="6M">6M</button>
+                                <button class="chart-range-btn" data-range="YTD">YTD</button>
+                                <button class="chart-range-btn active" data-range="1Y">1Y</button>
+                                <button class="chart-range-btn" data-range="3Y">3Y</button>
+                                <button class="chart-range-btn" data-range="5Y">5Y</button>
+                                <button class="chart-range-btn" data-range="All">All</button>
                             </div>
                             <canvas id="chart-${item.id}" onclick="event.stopPropagation()"></canvas>
                         </div>`;
@@ -6189,13 +6132,13 @@ renderPortfolioSummary() {
                             })()}</span>
                         </div>
                         <div class="stock-info">${stockInfoHTML}</div>
-                        <div class="card-expand-hint" id="hint-${item.id}">▼ tap to see chart</div>
+                        <div class="card-tap-hint">▼ tap card to see chart</div>
                         ${cardChartHTML}
                         <div class="total-pl ${todayPL >= 0 ? 'positive' : 'negative'}">${type !== 'watchlist' ? `P/L Today: ${this.formatCurrency(todayPL)}` : ''}</div>
                         ${cardActionsHTML}
                         ${type !== 'watchlist' ? `
                         <div class="card-news-section" id="news-section-${item.id}" style="margin-top:10px;border-top:1px solid var(--border-color);padding-top:8px;">
-                          <button class="card-news-btn" onclick="window.stToggleCardNews('${item.id}','${item.symbol}')"
+                          <button class="card-news-btn" onclick="event.stopPropagation();window.stToggleCardNews('${item.id}','${item.symbol}')"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
                             <span>📰 News</span>
                             <span id="news-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
@@ -6203,7 +6146,7 @@ renderPortfolioSummary() {
                           <div id="news-content-${item.id}" style="display:none;margin-top:8px;"></div>
                         </div>
                         <div id="pt-section-${item.id}" style="margin-top:6px;border-top:1px solid var(--border-color);padding-top:8px;">
-                          <button onclick="window.stTogglePriceTarget('${item.id}','${item.symbol}',${item.price||0})"
+                          <button onclick="event.stopPropagation();window.stTogglePriceTarget('${item.id}','${item.symbol}',${item.price||0})"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
                             <span>🎯 Price Targets</span>
                             <span id="pt-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
@@ -6211,7 +6154,7 @@ renderPortfolioSummary() {
                           <div id="pt-content-${item.id}" style="display:none;margin-top:8px;"></div>
                         </div>
                         <div id="fund-section-${item.id}" style="margin-top:6px;border-top:1px solid var(--border-color);padding-top:8px;">
-                          <button onclick="window.stToggleFundamentals('${item.id}','${item.symbol}')"
+                          <button onclick="event.stopPropagation();window.stToggleFundamentals('${item.id}','${item.symbol}')"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
                             <span>📊 Fundamentals</span>
                             <span id="fund-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
@@ -6219,7 +6162,7 @@ renderPortfolioSummary() {
                           <div id="fund-content-${item.id}" style="display:none;margin-top:8px;"></div>
                         </div>
                         <div id="earn-section-${item.id}" style="margin-top:6px;border-top:1px solid var(--border-color);padding-top:8px;">
-                          <button onclick="window.stToggleNextEarnings('${item.id}','${item.symbol}')"
+                          <button onclick="event.stopPropagation();window.stToggleNextEarnings('${item.id}','${item.symbol}')"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
                             <span>📅 Next Earnings</span>
                             <span id="earn-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
@@ -6227,7 +6170,7 @@ renderPortfolioSummary() {
                           <div id="earn-content-${item.id}" style="display:none;margin-top:8px;"></div>
                         </div>
                         <div id="divnext-section-${item.id}" style="margin-top:6px;border-top:1px solid var(--border-color);padding-top:8px;">
-                          <button onclick="window.stToggleNextDividend('${item.id}','${item.symbol}')"
+                          <button onclick="event.stopPropagation();window.stToggleNextDividend('${item.id}','${item.symbol}')"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
                             <span>💰 Next Dividend</span>
                             <span id="divnext-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
@@ -6238,19 +6181,6 @@ renderPortfolioSummary() {
                     
                     container.appendChild(card);
 
-                    // Also attach directly to card for desktop reliability
-                    if (type !== 'watchlist') {
-                        card.addEventListener('click', function(e) {
-                            if (e.target.closest('button, input, select, a, label, .card-news-section, [id^="pt-section-"], [id^="fund-section-"], [id^="earn-section-"], [id^="divnext-section-"], .transaction-details, .card-chart-container')) return;
-                            var wasExpanded = card.classList.contains('expanded');
-                            card.classList.toggle('expanded');
-                            var hint = card.querySelector('.card-expand-hint');
-                            if (hint) hint.textContent = wasExpanded ? '▼ tap to see chart' : '▲ tap to collapse';
-                            if (!wasExpanded && window.stockTracker) {
-                                window.stockTracker.renderCardChart(card.dataset.symbol, '1Y');
-                            }
-                        });
-                    }
                 });
             }
 
@@ -6330,9 +6260,6 @@ getOldestTransactionDate(item) {
                     if (this.chartDataCache[symbol]) {
                         historicalData = this.chartDataCache[symbol];
                     } else {
-                        // Check if Alpha Vantage Key is set before fetching
-                        // No key guard needed — Yahoo Finance requires no key
-                        
                         const result = await this.apiService.fetchHistoricalData(symbol);
                         
                         if (!result.success) {
@@ -13900,11 +13827,11 @@ window.stToggleNextEarnings = async function(id, symbol) {
 //  NEXT DIVIDEND PAYOUT — per card collapsible
 // ══════════════════════════════════════════════
 window.stToggleNextDividend = async function(id, symbol) {
-  const content  = document.getElementById('divnext-content-' + id);
-  const chevron  = document.getElementById('divnext-chevron-' + id);
+  var content = document.getElementById('divnext-content-' + id);
+  var chevron = document.getElementById('divnext-chevron-' + id);
   if (!content) return;
 
-  const isOpen = content.style.display !== 'none';
+  var isOpen = content.style.display !== 'none';
   if (isOpen) {
     content.style.display = 'none';
     if (chevron) chevron.style.transform = 'rotate(0deg)';
@@ -13912,110 +13839,132 @@ window.stToggleNextDividend = async function(id, symbol) {
   }
   content.style.display = 'block';
   if (chevron) chevron.style.transform = 'rotate(90deg)';
-
   if (content.dataset.loaded === '1') return;
 
-  const t = getTracker();
-  const key = t?.config?.finnhubApiKey || '';
+  var t = getTracker();
+  var key = (t && t.config && t.config.finnhubApiKey) || '';
   if (!key) {
-    content.innerHTML = '<div style="font-size:0.75rem;color:var(--text-secondary);padding:6px 0;">Add a Finnhub API key in ⚙️ Settings to fetch dividend dates.</div>';
+    content.innerHTML = '<div style="font-size:0.75rem;color:var(--text-secondary);padding:6px 0;">Add a Finnhub API key in Settings to fetch dividend data.</div>';
     return;
   }
 
-  content.innerHTML = '<div style="font-size:0.72rem;color:var(--text-secondary);padding:4px 0;">Fetching…</div>';
+  content.innerHTML = '<div style="font-size:0.72rem;color:var(--text-secondary);padding:4px 0;">Fetching...</div>';
 
   try {
-    const today   = new Date().toISOString().split('T')[0];
-    const future  = new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0];
-    const BASE    = 'https://finnhub.io/api/v1';
+    var BASE = 'https://finnhub.io/api/v1';
 
-    // Call both endpoints in parallel
-    const [metricRes, divRes] = await Promise.all([
-      fetch(`${BASE}/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${key}`),
-      fetch(`${BASE}/stock/dividend?symbol=${encodeURIComponent(symbol)}&from=${today}&to=${future}&token=${key}`)
-    ]);
+    // Only use /stock/metric — free tier endpoint (stock/dividend is paid)
+    var metricRes = await fetch(BASE + '/stock/metric?symbol=' + encodeURIComponent(symbol) + '&metric=all&token=' + key);
+    var metricData = metricRes.ok ? await metricRes.json() : {};
+    var m = metricData.metric || {};
 
-    const metricData = metricRes.ok ? await metricRes.json() : {};
-    const divData    = divRes.ok   ? await divRes.json()    : [];
+    // Get stored dividends from the app's own data for prediction
+    var storedItem = null;
+    if (t && t.stocks) storedItem = t.stocks.find(function(s) { return s.symbol === symbol; });
+    if (!storedItem && t && t.mutualFunds) storedItem = t.mutualFunds.find(function(f) { return f.symbol === symbol; });
+    var storedDivs = (storedItem && storedItem.dividends) ? storedItem.dividends.slice().sort(function(a,b) {
+      return new Date(b.date) - new Date(a.date);
+    }) : [];
 
-    const m = metricData.metric || {};
+    // Detect pay frequency from stored dividend dates
+    var freq = null;
+    if (storedDivs.length >= 2) {
+      var dates = storedDivs.map(function(d) { return new Date(d.date); }).filter(function(d) { return !isNaN(d); });
+      var gaps = [];
+      for (var gi = 0; gi < Math.min(dates.length-1, 6); gi++) {
+        gaps.push(Math.round((dates[gi] - dates[gi+1]) / 86400000));
+      }
+      var avgGap = gaps.reduce(function(s,g) { return s+g; }, 0) / gaps.length;
+      if (avgGap < 45)        freq = { days: 30,  label: 'Monthly' };
+      else if (avgGap < 120)  freq = { days: 91,  label: 'Quarterly' };
+      else if (avgGap < 240)  freq = { days: 182, label: 'Semi-Annual' };
+      else                    freq = { days: 365, label: 'Annual' };
+    } else {
+      // Fall back to Finnhub payout frequency
+      var pf = m.payoutFrequency;
+      if (pf === 12)      freq = { days: 30,  label: 'Monthly' };
+      else if (pf === 4)  freq = { days: 91,  label: 'Quarterly' };
+      else if (pf === 2)  freq = { days: 182, label: 'Semi-Annual' };
+      else if (pf === 1)  freq = { days: 365, label: 'Annual' };
+    }
 
-    // From /stock/dividend — upcoming entries sorted by ex-date
-    const upcoming = Array.isArray(divData)
-      ? divData.filter(d => d.exDate && d.exDate >= today).sort((a,b) => a.exDate.localeCompare(b.exDate))
-      : [];
+    // Predict next pay date from last stored dividend + frequency
+    var predictedDate = null;
+    var lastDivDate = storedDivs.length > 0 ? new Date(storedDivs[0].date) : null;
+    if (!lastDivDate && m.lastDividendDate) lastDivDate = new Date(m.lastDividendDate + 'T12:00:00');
+    if (lastDivDate && freq) {
+      var pred = new Date(lastDivDate.getTime() + freq.days * 86400000);
+      predictedDate = pred > new Date() ? pred : new Date(pred.getTime() + freq.days * 86400000);
+    }
 
-    // Prefer upcoming dividend data, fall back to metric
-    const next       = upcoming[0] || null;
-    const exDate     = next?.exDate     || m.dividendExDate    || m.lastDividendDate || null;
-    const payDate    = next?.payDate    || m.dividendPayDate   || null;
-    const declDate   = next?.declaredDate                      || null;
-    const divAmt     = next?.amount     != null ? next.amount  : (m.dividendPerShareTTM || m.dividendPerShareAnnual || null);
-    const divYield   = m['dividendYieldIndicatedAnnual']       || m.dividendYield5Y    || null;
-    const freq       = m.payoutFrequency || null;
-    const freqLabel  = freq === 4 ? 'Quarterly' : freq === 12 ? 'Monthly' : freq === 2 ? 'Semi-Annual' : freq === 1 ? 'Annual' : '';
+    var exDate   = m.dividendExDate || m.lastDividendDate || null;
+    var divAmt   = m.dividendPerShareTTM || m.dividendPerShareAnnual || null;
+    var divYield = m.dividendYieldIndicatedAnnual || m.dividendYield5Y || null;
 
-    // Format date helper — turns "2025-03-15" into "Mar 15, 2025"
-    const fmtDate = str => {
-      if (!str) return null;
-      const d = new Date(str + 'T12:00:00');
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (!exDate && !divAmt && storedDivs.length === 0) {
+      content.innerHTML = '<div style="font-size:0.75rem;color:var(--text-secondary);padding:6px 0;">No dividend data found. This stock may not pay dividends.</div>';
+      content.dataset.loaded = '1';
+      return;
+    }
+
+    var fmtDate = function(d) {
+      if (!d) return null;
+      var dt = (typeof d === 'string') ? new Date(d + 'T12:00:00') : d;
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+    var daysUntil = function(d) {
+      if (!d) return null;
+      var dt = (typeof d === 'string') ? new Date(d + 'T12:00:00') : d;
+      return Math.round((dt - new Date()) / 86400000);
+    };
+    var badge = function(days) {
+      if (days == null) return '';
+      if (days < 0)   return ' <span style="font-size:0.65rem;color:#e74c3c;">(passed)</span>';
+      if (days === 0) return ' <span style="font-size:0.65rem;color:#e74c3c;">(Today!)</span>';
+      if (days <= 14) return ' <span style="font-size:0.65rem;color:#f39c12;">(in ' + days + 'd)</span>';
+      return ' <span style="font-size:0.65rem;color:var(--text-secondary);">(in ' + days + 'd)</span>';
     };
 
-    if (!exDate && !divAmt) {
-      content.innerHTML = '<div style="font-size:0.75rem;color:var(--text-secondary);padding:6px 0;">No dividend data found. This stock may not pay dividends.</div>';
-    } else {
-      const daysToEx = exDate ? Math.round((new Date(exDate) - new Date()) / 86400000) : null;
-      const daysToPayDate = payDate ? Math.round((new Date(payDate) - new Date()) / 86400000) : null;
+    var html = '<div style="background:rgba(46,213,115,0.06);border:1px solid rgba(46,213,115,0.15);border-radius:7px;padding:10px 12px;">';
 
-      const rowStyle = 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;';
-      const lblStyle = 'font-size:0.67rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;';
-      const valStyle = 'font-family:monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);';
-
-      let html = `<div style="background:rgba(46,213,115,0.06);border:1px solid rgba(46,213,115,0.15);border-radius:7px;padding:10px 12px;">`;
-
-      if (exDate) {
-        const badge = daysToEx < 0
-          ? `<span style="font-size:0.65rem;color:var(--color-negative,#e74c3c);">passed</span>`
-          : daysToEx === 0 ? `<span style="font-size:0.65rem;color:#e74c3c;">Today</span>`
-          : daysToEx <= 7  ? `<span style="font-size:0.65rem;color:#f39c12;">in ${daysToEx}d</span>`
-          : `<span style="font-size:0.65rem;color:var(--text-secondary);">in ${daysToEx}d</span>`;
-        html += `<div style="${rowStyle}"><span style="${lblStyle}">Ex-Dividend Date</span><span style="${valStyle}">${fmtDate(exDate)} ${badge}</span></div>`;
-      }
-
-      if (payDate) {
-        const payBadge = daysToPayDate != null && daysToPayDate >= 0
-          ? `<span style="font-size:0.65rem;color:var(--color-positive,#27ae60);">in ${daysToPayDate}d</span>` : '';
-        html += `<div style="${rowStyle}"><span style="${lblStyle}">Payment Date</span><span style="${valStyle};color:var(--color-positive,#27ae60);">${fmtDate(payDate)} ${payBadge}</span></div>`;
-      }
-
-      if (declDate) {
-        html += `<div style="${rowStyle}"><span style="${lblStyle}">Declared Date</span><span style="${valStyle}">${fmtDate(declDate)}</span></div>`;
-      }
-
-      if (divAmt != null) {
-        html += `<div style="${rowStyle}"><span style="${lblStyle}">Amount / Share</span><span style="${valStyle};color:var(--color-positive,#27ae60);">$${Number(divAmt).toFixed(4)}</span></div>`;
-      }
-
-      if (divYield != null) {
-        html += `<div style="${rowStyle};margin-bottom:0;"><span style="${lblStyle}">Indicated Yield</span><span style="font-size:0.78rem;font-weight:700;color:var(--accent-primary);">${Number(divYield).toFixed(2)}%${freqLabel ? ' · ' + freqLabel : ''}</span></div>`;
-      }
-
-      html += `</div>`;
-
-      if (upcoming.length > 1) {
-        html += `<div style="font-size:0.68rem;color:var(--text-secondary);margin-top:5px;">+${upcoming.length-1} more dividend event${upcoming.length>2?'s':''} in next 12 months</div>`;
-      }
-
-      content.innerHTML = html;
+    // Ex-dividend date from Finnhub metric
+    if (exDate) {
+      var exDays = daysUntil(exDate);
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:0.67rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">Last Ex-Div Date</span><span style="font-family:monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);">' + fmtDate(exDate) + badge(exDays) + '</span></div>';
     }
+
+    // Predicted next payment
+    if (predictedDate) {
+      var predDays = daysUntil(predictedDate);
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:0.67rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">Est. Next Payment</span><span style="font-family:monospace;font-size:0.78rem;font-weight:700;color:var(--color-positive,#27ae60);">' + fmtDate(predictedDate) + ' <span style="font-size:0.65rem;color:#f39c12;">(~' + predDays + 'd, predicted)</span></span></div>';
+    }
+
+    // Amount and yield
+    if (divAmt != null) {
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;"><span style="font-size:0.67rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">Amount / Share</span><span style="font-size:0.78rem;font-weight:700;color:var(--color-positive,#27ae60);">$' + Number(divAmt).toFixed(4) + (freq ? ' · ' + freq.label : '') + '</span></div>';
+    }
+    if (divYield != null) {
+      html += '<div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="font-size:0.67rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">Indicated Yield</span><span style="font-size:0.78rem;font-weight:700;color:var(--accent-primary);">' + Number(divYield).toFixed(2) + '%</span></div>';
+    }
+    html += '</div>';
+
+    // Show last 3 stored dividend payments
+    if (storedDivs.length > 0) {
+      html += '<div style="margin-top:8px;font-size:0.68rem;color:var(--text-secondary);">';
+      html += '<div style="font-weight:700;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;">Your Recorded Payments</div>';
+      storedDivs.slice(0, 3).forEach(function(d) {
+        html += '<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:0.5px solid var(--border-color);"><span>' + fmtDate(d.date) + '</span><span style="color:var(--color-positive,#27ae60);">$' + (d.totalAmount ? Number(d.totalAmount).toFixed(2) : '') + '</span></div>';
+      });
+      if (freq) html += '<div style="margin-top:4px;color:var(--accent-primary);">Pattern: ' + freq.label + ' (~every ' + freq.days + 'd)</div>';
+      html += '</div>';
+    }
+
+    content.innerHTML = html;
     content.dataset.loaded = '1';
   } catch(e) {
     content.innerHTML = '<div style="font-size:0.75rem;color:var(--text-secondary);padding:6px 0;">Could not fetch dividend data.</div>';
   }
 };
-
-
 })();
 </script>
 
@@ -14033,36 +13982,5 @@ window.stToggleNextDividend = async function(id, symbol) {
 })();
 </script>
 
-<script>
-// Document-level card expand — works regardless of event delegation issues
-document.addEventListener('click', function(e) {
-    // Skip if clicking a button, input, or known interactive element
-    if (e.target.closest('button, input, select, a, label, .card-news-section, [id^="pt-section-"], [id^="fund-section-"], [id^="earn-section-"], [id^="divnext-section-"], .transaction-details, .card-chart-container')) return;
-
-    // Find if we clicked inside a stock/fund card
-    var card = e.target.closest('.stock-card, .fund-card');
-    if (!card) return;
-    if (card.classList.contains('closed-position')) return;
-
-    var wasExpanded = card.classList.contains('expanded');
-    card.classList.toggle('expanded');
-
-    var hint = card.querySelector('.card-expand-hint');
-    if (hint) hint.textContent = wasExpanded ? '▼ tap to see chart' : '▲ tap to collapse';
-
-    if (!wasExpanded) {
-        var symbol = card.dataset.symbol;
-        if (!symbol) return;
-        var tries = 0;
-        (function tryRender() {
-            if (window.stockTracker && window.stockTracker.renderCardChart) {
-                window.stockTracker.renderCardChart(symbol, '1Y');
-            } else if (++tries < 30) {
-                setTimeout(tryRender, 200);
-            }
-        })();
-    }
-}, true); // capture phase — fires before anything can stop it
-</script>
 </body>
 </html>
