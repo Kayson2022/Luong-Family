@@ -13374,6 +13374,52 @@ window.renderDivCalendar = function renderDivCalendar() {
       <td style="padding:5px 8px;text-align:right;color:var(--text-secondary);">${fc(s.annual/12)}/mo</td>
     </tr>`).join('');
 
+  // ── Predicted next payouts per symbol ─────────────────────────────────
+  const fmtDate = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  const nextPayoutRows = all.map(item => {
+    const divs = (item.dividends||[]).slice().sort((a,b) => new Date(b.date)-new Date(a.date));
+    if (divs.length < 2) return null;
+
+    // Detect frequency from gaps
+    const dates = divs.map(d => new Date(d.date)).filter(d => !isNaN(d));
+    const gaps = [];
+    for (let i = 0; i < Math.min(dates.length-1, 6); i++) {
+      gaps.push(Math.round((dates[i]-dates[i+1])/86400000));
+    }
+    const avgGap = gaps.reduce((s,g)=>s+g,0)/gaps.length;
+    let freqDays, freqLabel;
+    if (avgGap < 45)       { freqDays=30;  freqLabel='Monthly'; }
+    else if (avgGap < 120) { freqDays=91;  freqLabel='Quarterly'; }
+    else if (avgGap < 240) { freqDays=182; freqLabel='Semi-Annual'; }
+    else                   { freqDays=365; freqLabel='Annual'; }
+
+    // Predict next date
+    const lastDate = dates[0];
+    let predicted = new Date(lastDate.getTime() + freqDays*86400000);
+    if (predicted < now) predicted = new Date(predicted.getTime() + freqDays*86400000);
+    const daysUntil = Math.round((predicted-now)/86400000);
+
+    // Last dividend amount
+    const lastAmt = parseFloat(divs[0].totalAmount)||0;
+    const stats = tracker.calculateTransactionStats(item.transactions, item.price);
+    const shares = stats.totalSharesOwned || 0;
+
+    return { symbol: item.symbol, predicted, daysUntil, freqLabel, freqDays, lastAmt, shares, lastDate, divs };
+  }).filter(Boolean).sort((a,b) => a.daysUntil - b.daysUntil);
+
+  const nextRows = nextPayoutRows.map(r => {
+    const urgency = r.daysUntil <= 7 ? 'color:#f39c12;font-weight:700;' :
+                    r.daysUntil <= 30 ? 'color:var(--color-positive,#27ae60);font-weight:700;' :
+                    'color:var(--text-secondary);';
+    return `<tr style="border-bottom:0.5px solid var(--border-color);font-size:0.8rem;">
+      <td style="padding:6px 8px;font-weight:700;">${r.symbol}</td>
+      <td style="padding:6px 8px;${urgency}">${fmtDate(r.predicted)} <span style="font-size:0.68rem;color:#f39c12;">(~${r.daysUntil}d)</span></td>
+      <td style="padding:6px 8px;text-align:right;color:var(--text-secondary);font-size:0.75rem;">${r.freqLabel}</td>
+      <td style="padding:6px 8px;text-align:right;color:var(--color-positive,#27ae60);">${fc(r.lastAmt)}</td>
+    </tr>`;
+  }).join('');
+
   el.innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <div style="padding:12px 16px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
@@ -13391,7 +13437,7 @@ window.renderDivCalendar = function renderDivCalendar() {
     </div>
     <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin-bottom:18px;padding:0 4px;">${calBars}</div>
     ${bySymbol.length ? `
-    <table style="width:100%;border-collapse:collapse;">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
       <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.7rem;color:var(--text-secondary);">
         <th style="padding:5px 8px;text-align:left;">Symbol</th>
         <th style="padding:5px 8px;text-align:right;">Trailing 12M</th>
@@ -13400,6 +13446,22 @@ window.renderDivCalendar = function renderDivCalendar() {
       </tr></thead>
       <tbody>${symRows}</tbody>
     </table>` : '<p style="color:var(--text-secondary);text-align:center;padding:20px;">No dividend history yet. Use 💰 Dividend Tracker to fetch data.</p>'}
+
+    ${nextPayoutRows.length ? `
+    <div style="margin-top:4px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-secondary);margin-bottom:8px;">📅 Predicted Next Payouts</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.7rem;color:var(--text-secondary);">
+          <th style="padding:5px 8px;text-align:left;">Symbol</th>
+          <th style="padding:5px 8px;text-align:left;">Est. Date</th>
+          <th style="padding:5px 8px;text-align:right;">Frequency</th>
+          <th style="padding:5px 8px;text-align:right;">Last Amt</th>
+        </tr></thead>
+        <tbody>${nextRows}</tbody>
+      </table>
+      <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:6px;">Predictions based on your recorded dividend history. Dates are estimates only.</p>
+    </div>` : ''}
+
     <p style="font-size:0.68rem;color:var(--text-secondary);margin-top:10px;">Actual ${year} payments. Yield on cost = trailing 12-month dividends ÷ cost basis.</p>`;
 };
 
