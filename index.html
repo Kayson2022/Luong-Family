@@ -619,6 +619,13 @@
             transition: max-height 0.5s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.5s ease-in-out;
             margin-top: 0;
         }
+        .stock-card.expanded .card-chart-container,
+        .fund-card.expanded .card-chart-container {
+            max-height: 400px;
+            opacity: 1;
+            margin-top: 20px;
+            overflow: visible;
+        }
         .card-tap-hint {
             text-align: center;
             font-size: 0.65rem;
@@ -628,12 +635,10 @@
             letter-spacing: 0.3px;
             user-select: none;
         }
-        .stock-card.expanded .card-chart-container,
-        .fund-card.expanded .card-chart-container {
-            max-height: 300px; /* Adjust as needed */
-            opacity: 1;
-            margin-top: 20px;
-            height: 260px;
+        .card-chart-container canvas {
+            width: 100% !important;
+            height: 220px !important;
+            display: block;
         }
         .chart-controls {
             display: flex;
@@ -6333,6 +6338,8 @@ getOldestTransactionDate(item) {
                         timeUnit = 'year';
                     }
 
+                    console.log('[Render] chartData points:', chartData.length, 'canvas:', canvas.id, 'w:', canvas.offsetWidth, 'h:', canvas.offsetHeight, 'ctx:', !!ctx);
+
                     this.cardChartInstances[chartId] = new Chart(ctx, {
                         type: 'line',
                         data: {
@@ -6380,7 +6387,7 @@ getOldestTransactionDate(item) {
 
                 } catch (error) {
                     canvas._renderPending = false;
-                    // Catch the error thrown if API key is missing or API limits hit.
+                    console.error('[Render] Chart error:', error.message, error.stack);
                     console.error(`Chart rendering error for ${symbol}:`, error);
                     // The error message is already drawn in the catch block above (drawError) if needed.
                 }
@@ -9810,7 +9817,7 @@ body.dark-mode #sticky-mini-bar { background: rgba(34,37,46,0.95); }
 
 /* ── Keyboard shortcut hint badge ── */
 #kbd-hint {
-  position:fixed; bottom:70px; left:16px; z-index:1100;
+  position:fixed; bottom:70px; right:16px; left:auto; z-index:1100;
   background:var(--bg-secondary); border:1px solid var(--border-color);
   border-radius:10px; padding:12px 16px; font-size:0.8rem;
   color:var(--text-primary); box-shadow:0 8px 24px rgba(0,0,0,0.18);
@@ -9823,7 +9830,7 @@ body.dark-mode #sticky-mini-bar { background: rgba(34,37,46,0.95); }
   border-radius:4px; padding:2px 6px; font-size:0.75rem; font-family:monospace;
 }
 #kbd-toggle-btn {
-  position:fixed; bottom:16px; left:16px; z-index:1100;
+  position:fixed; bottom:16px; right:16px; left:auto; z-index:1100;
   background:var(--bg-secondary); border:1px solid var(--border-color);
   border-radius:50%; width:36px; height:36px;
   display:flex; align-items:center; justify-content:center;
