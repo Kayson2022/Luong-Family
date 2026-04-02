@@ -427,7 +427,7 @@
         /* --- Utility Toolbar --- */
         .utility-buttons-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
             padding: 16px;
             background-color: var(--bg-tertiary);
@@ -2869,7 +2869,7 @@ body.dark-mode .modal-content {
 </div>
 
 <!-- ── Enhancement Toolbar — always visible, no JS timing dependency ── -->
-<div id="stToolbarRow" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 4px;">
+<div id="stToolbarRow" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;padding:8px 16px 4px;">
   <button class="st-toolbar-btn" data-st-panel="snapshot">📊 Snapshot</button>
   <button class="st-toolbar-btn" data-st-panel="tax">🧾 Tax Summary</button>
   <button class="st-toolbar-btn" data-st-panel="cal">📅 Calendar</button>
@@ -10363,7 +10363,7 @@ setTimeout(tryInitLazy, 1000);
 /* ── shared panel ── */
 .st-panel { display:none !important; background:var(--bg-secondary); border-radius:12px; margin:12px 16px 20px; padding:20px; border:1px solid var(--border-color); }
 .st-panel.open { display:block !important; }
-#stToolbarRow { display:flex; flex-wrap:wrap; gap:6px; padding:8px 16px 4px; }
+#stToolbarRow { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:6px; padding:8px 16px 4px; }
 .st-panel-title { font-size:1rem; font-weight:700; color:var(--text-primary); margin-bottom:4px; }
 .st-panel-sub { font-size:0.75rem; color:var(--text-secondary); margin-bottom:16px; }
 .st-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:18px; }
@@ -10399,7 +10399,7 @@ body.st-compact .investment-info { gap:4px !important; }
 .st-slider-row input[type=range] { flex:1; min-width:100px; }
 .st-slider-val { min-width:70px; font-weight:700; color:var(--text-primary); text-align:right; }
 /* Toolbar badges */
-.st-toolbar-btn { padding:5px 12px; border-radius:6px; background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+.st-toolbar-btn { padding:5px 12px; border-radius:6px; background:var(--bg-secondary); border:1px solid var(--border-color); color:var(--text-secondary); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; width:100%; text-align:center; }
 .st-toolbar-btn:hover { border-color:var(--color-positive,#27ae60); color:var(--color-positive,#27ae60); }
 .st-toolbar-btn.active { background:var(--color-positive,#27ae60); color:#fff; border-color:var(--color-positive,#27ae60); }
 </style>
