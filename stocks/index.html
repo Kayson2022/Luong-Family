@@ -3977,8 +3977,7 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 
 // --- Historical Data Fetch (Uses Alpha Vantage) ---
             async fetchHistoricalData(symbol) {
-                var yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?interval=1d&range=5y';
-
+                // Use exact same pattern as working benchmark/history fetches in this app
                 var parseYahoo = function(json) {
                     var r = json && json.chart && json.chart.result && json.chart.result[0];
                     if (!r || !r.timestamp || !r.timestamp.length) return null;
@@ -3991,34 +3990,32 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                     return Object.keys(data).length > 0 ? data : null;
                 };
 
-                // Try 3 proxies for Yahoo Finance
-                var proxies = [
-                    'https://corsproxy.io/?' + yahooUrl,
-                    'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl),
-                    'https://corsproxy.io/?' + yahooUrl.replace('query1', 'query2'),
+                // Same URL pattern as the working chart fetches at line ~3571
+                var urls = [
+                    'https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y',
+                    'https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=2y',
+                    'https://corsproxy.io/?https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y',
+                    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y'),
                 ];
-                for (var pi = 0; pi < proxies.length; pi++) {
+
+                for (var i = 0; i < urls.length; i++) {
                     try {
-                        var res = await fetch(proxies[pi], { cache: 'no-store' });
-                        if (res.ok) {
-                            var data = parseYahoo(await res.json());
-                            if (data) return { success: true, data: data, source: 'yahoo' };
-                        }
+                        var res = await fetch(urls[i]);
+                        if (!res.ok) continue;
+                        var data = parseYahoo(await res.json());
+                        if (data) return { success: true, data: data, source: 'yahoo' };
                     } catch(e) {}
                 }
 
-                // Fallback: Alpha Vantage (if key set)
+                // Alpha Vantage last resort
                 if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
-                    return { success: false, reason: 'Chart data unavailable. Try again later.' };
+                    return { success: false, reason: 'Chart data unavailable.' };
                 }
                 try {
-                    var avUrl = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=' + symbol + '&outputsize=full&apikey=' + this.config.alphaVantageKey;
-                    var avRes = await fetch(avUrl);
+                    var avRes = await fetch('https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=' + symbol + '&outputsize=full&apikey=' + this.config.alphaVantageKey);
                     if (!avRes.ok) return { success: false, reason: 'Chart data unavailable.' };
                     var avJson = await avRes.json();
-                    if (!avJson['Time Series (Daily)']) {
-                        return { success: false, reason: 'Chart data unavailable. Try again later.' };
-                    }
+                    if (!avJson['Time Series (Daily)']) return { success: false, reason: 'Chart data unavailable.' };
                     return { success: true, data: avJson['Time Series (Daily)'] };
                 } catch(e) {
                     return { success: false, reason: 'Chart data unavailable.' };
