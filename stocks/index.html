@@ -3977,37 +3977,28 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 
 // --- Historical Data Fetch (Uses Alpha Vantage) ---
             async fetchHistoricalData(symbol) {
-                // Use exact same pattern as working benchmark/history fetches in this app
-                var parseYahoo = function(json) {
-                    var r = json && json.chart && json.chart.result && json.chart.result[0];
-                    if (!r || !r.timestamp || !r.timestamp.length) return null;
-                    var closes = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
-                    var data = {};
-                    r.timestamp.forEach(function(ts, i) {
-                        if (closes[i] == null) return;
-                        data[new Date(ts * 1000).toISOString().split('T')[0]] = { '4. close': String(closes[i]) };
-                    });
-                    return Object.keys(data).length > 0 ? data : null;
-                };
-
-                // Same URL pattern as the working chart fetches at line ~3571
-                var urls = [
-                    'https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y',
-                    'https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=2y',
-                    'https://corsproxy.io/?https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y',
-                    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?interval=1d&range=5y'),
-                ];
-
-                for (var i = 0; i < urls.length; i++) {
+                // Use fetchYahooHistory which is proven to work on both GitHub Pages and Netlify
+                // Try multiple ranges — longer range gives more chart history
+                var ranges = ['ALL', '5Y', '2Y', '1Y'];
+                for (var ri = 0; ri < ranges.length; ri++) {
                     try {
-                        var res = await fetch(urls[i]);
-                        if (!res.ok) continue;
-                        var data = parseYahoo(await res.json());
-                        if (data) return { success: true, data: data, source: 'yahoo' };
+                        var result = await this.fetchYahooHistory(symbol, ranges[ri]);
+                        if (result && result.history && result.history.length > 10) {
+                            // Convert {date, price}[] to Alpha Vantage-compatible format
+                            var data = {};
+                            result.history.forEach(function(pt) {
+                                if (pt.price == null) return;
+                                var key = (pt.date instanceof Date)
+                                    ? pt.date.toISOString().split('T')[0]
+                                    : String(pt.date).split('T')[0];
+                                data[key] = { '4. close': String(pt.price) };
+                            });
+                            if (Object.keys(data).length > 0) return { success: true, data: data, source: 'yahoo' };
+                        }
                     } catch(e) {}
                 }
 
-                // Alpha Vantage last resort
+                // Alpha Vantage last resort — suppress premium message
                 if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
                     return { success: false, reason: 'Chart data unavailable.' };
                 }
@@ -6271,7 +6262,7 @@ getOldestTransactionDate(item) {
                         const result = await this.apiService.fetchHistoricalData(symbol);
                         
                         if (!result.success) {
-                            drawError(result.reason.includes('rate limit') ? "Rate Limit Hit. Wait a minute." : `API Error: ${result.reason}`);
+                            drawError(result.reason.includes('rate limit') ? "Rate Limit Hit. Wait a minute." : result.reason);
                             throw new Error(result.reason); // Throw to skip further processing
                         }
                         this.chartDataCache[symbol] = result.data;
