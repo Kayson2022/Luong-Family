@@ -3569,10 +3569,24 @@ async fetchYahooHistory(symbol, range) {
                     const mapEntry = mapping[range] || mapping["1Y"];
                     const yRange = mapEntry.range;
                     const interval = mapEntry.interval;
-                    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${yRange}`;
-                    const res = await fetch(url);
-                    if (!res.ok) throw new Error("Yahoo history fetch failed");
-                    const json = await res.json();
+                    const yahooPath = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${yRange}`;
+
+                    // Try multiple proxies in sequence
+                    const proxyUrls = [
+                        `https://corsproxy.io/?${yahooPath}`,
+                        `https://corsproxy.io/?${yahooPath.replace('query1','query2')}`,
+                        `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooPath)}`,
+                    ];
+
+                    let json = null;
+                    for (const proxyUrl of proxyUrls) {
+                        try {
+                            const res = await fetch(proxyUrl);
+                            if (res.ok) { json = await res.json(); break; }
+                        } catch(e) {}
+                    }
+                    if (!json) throw new Error("All proxies failed");
+
                     const result = json.chart?.result?.[0];
                     if (!result) throw new Error("Invalid Yahoo historical data");
                     const timestamps = result.timestamp || [];
@@ -3975,16 +3989,15 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                 };
             }
 
-// --- Historical Data Fetch (Uses Alpha Vantage) ---
+// --- Historical Data Fetch ---
             async fetchHistoricalData(symbol) {
-                // Use fetchYahooHistory which is proven to work on both GitHub Pages and Netlify
-                // Try multiple ranges — longer range gives more chart history
-                var ranges = ['ALL', '5Y', '2Y', '1Y'];
+                var ranges = ['ALL', '1Y', '6M'];
                 for (var ri = 0; ri < ranges.length; ri++) {
                     try {
+                        console.log('[Chart] trying range:', ranges[ri]);
                         var result = await this.fetchYahooHistory(symbol, ranges[ri]);
+                        console.log('[Chart] got history length:', result && result.history && result.history.length);
                         if (result && result.history && result.history.length > 10) {
-                            // Convert {date, price}[] to Alpha Vantage-compatible format
                             var data = {};
                             result.history.forEach(function(pt) {
                                 if (pt.price == null) return;
@@ -3993,11 +4006,15 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                                     : String(pt.date).split('T')[0];
                                 data[key] = { '4. close': String(pt.price) };
                             });
-                            if (Object.keys(data).length > 0) return { success: true, data: data, source: 'yahoo' };
+                            if (Object.keys(data).length > 0) {
+                                console.log('[Chart] success, points:', Object.keys(data).length);
+                                return { success: true, data: data, source: 'yahoo' };
+                            }
                         }
-                    } catch(e) {}
+                    } catch(e) {
+                        console.warn('[Chart] range', ranges[ri], 'failed:', e.message);
+                    }
                 }
-
                 // Alpha Vantage last resort — suppress premium message
                 if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
                     return { success: false, reason: 'Chart data unavailable.' };
