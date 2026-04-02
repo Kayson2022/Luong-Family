@@ -3977,40 +3977,51 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 
 // --- Historical Data Fetch (Uses Alpha Vantage) ---
             async fetchHistoricalData(symbol) {
-                // Try Yahoo Finance first (free, no key needed)
-                try {
-                    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5y`;
-                    const res = await fetch(url, { cache: 'no-store' });
-                    if (res.ok) {
-                        const json = await res.json();
-                        const r = json && json.chart && json.chart.result && json.chart.result[0];
-                        if (r && r.timestamp && r.timestamp.length) {
-                            const closes = r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close || [];
-                            const data = {};
-                            r.timestamp.forEach(function(ts, i) {
-                                if (closes[i] == null) return;
-                                data[new Date(ts * 1000).toISOString().split('T')[0]] = { '4. close': String(closes[i]) };
-                            });
-                            if (Object.keys(data).length > 0) return { success: true, data: data, source: 'yahoo' };
-                        }
-                    }
-                } catch(e) { /* fall through */ }
+                var yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?interval=1d&range=5y';
 
-                // Fallback: Alpha Vantage
-                if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
-                    return { success: false, reason: "Add an Alpha Vantage key in Settings, or check your internet connection." };
+                var parseYahoo = function(json) {
+                    var r = json && json.chart && json.chart.result && json.chart.result[0];
+                    if (!r || !r.timestamp || !r.timestamp.length) return null;
+                    var closes = (r.indicators && r.indicators.quote && r.indicators.quote[0] && r.indicators.quote[0].close) || [];
+                    var data = {};
+                    r.timestamp.forEach(function(ts, i) {
+                        if (closes[i] == null) return;
+                        data[new Date(ts * 1000).toISOString().split('T')[0]] = { '4. close': String(closes[i]) };
+                    });
+                    return Object.keys(data).length > 0 ? data : null;
+                };
+
+                // Try 3 proxies for Yahoo Finance
+                var proxies = [
+                    'https://corsproxy.io/?' + yahooUrl,
+                    'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl),
+                    'https://corsproxy.io/?' + yahooUrl.replace('query1', 'query2'),
+                ];
+                for (var pi = 0; pi < proxies.length; pi++) {
+                    try {
+                        var res = await fetch(proxies[pi], { cache: 'no-store' });
+                        if (res.ok) {
+                            var data = parseYahoo(await res.json());
+                            if (data) return { success: true, data: data, source: 'yahoo' };
+                        }
+                    } catch(e) {}
                 }
-                const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${this.config.alphaVantageKey}`;
+
+                // Fallback: Alpha Vantage (if key set)
+                if (!this.config.alphaVantageKey || this.config.alphaVantageKey === 'YOUR_ALPHA_VANTAGE_KEY') {
+                    return { success: false, reason: 'Chart data unavailable. Try again later.' };
+                }
                 try {
-                    const response = await fetch(url);
-                    if (!response.ok) return { success: false, reason: 'HTTP Error: ' + response.status };
-                    const json = await response.json();
-                    if (json["Error Message"] || !json["Time Series (Daily)"]) {
-                        return { success: false, reason: json["Information"] || json["Error Message"] || 'Invalid API payload.' };
+                    var avUrl = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=' + symbol + '&outputsize=full&apikey=' + this.config.alphaVantageKey;
+                    var avRes = await fetch(avUrl);
+                    if (!avRes.ok) return { success: false, reason: 'Chart data unavailable.' };
+                    var avJson = await avRes.json();
+                    if (!avJson['Time Series (Daily)']) {
+                        return { success: false, reason: 'Chart data unavailable. Try again later.' };
                     }
-                    return { success: true, data: json["Time Series (Daily)"] };
-                } catch (error) {
-                    return { success: false, symbol: symbol, reason: error.message };
+                    return { success: true, data: avJson['Time Series (Daily)'] };
+                } catch(e) {
+                    return { success: false, reason: 'Chart data unavailable.' };
                 }
             }
             
