@@ -4005,55 +4005,57 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
 // --- Historical Data Fetch (Uses Alpha Vantage) ---
             async fetchHistoricalData(symbol) {
                 const now  = Math.floor(Date.now() / 1000);
-                const from = now - 6 * 365 * 24 * 60 * 60; // 6 years back
-                const yahooPath = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${from}&period2=${now}`;
+                const from = now - 6 * 365 * 24 * 60 * 60;
+                const encSym = encodeURIComponent(symbol);
+                const q1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encSym}?interval=1d&period1=${from}&period2=${now}`;
+                const q2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encSym}?interval=1d&period1=${from}&period2=${now}`;
 
-                // Try multiple CORS proxies in sequence
-                const proxies = [
-                    `https://corsproxy.io/?${yahooPath}`,
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooPath)}`,
-                    `https://thingproxy.freeboard.io/fetch/${yahooPath}`,
+                const parseYahoo = (json) => {
+                    const r = json?.chart?.result?.[0];
+                    if (!r) return null;
+                    const ts = r.timestamp || [];
+                    const cl = r.indicators?.quote?.[0]?.close || [];
+                    if (!ts.length) return null;
+                    const data = {};
+                    ts.forEach((t, i) => {
+                        if (cl[i] == null) return;
+                        data[new Date(t * 1000).toISOString().split('T')[0]] = { '4. close': String(cl[i]) };
+                    });
+                    return Object.keys(data).length > 0 ? data : null;
+                };
+
+                const attempts = [
+                    () => fetch(q1, { cache: 'no-store' }),
+                    () => fetch(q2, { cache: 'no-store' }),
+                    () => fetch('https://corsproxy.io/?' + q1, { cache: 'no-store' }),
+                    () => fetch('https://corsproxy.io/?' + q2, { cache: 'no-store' }),
+                    () => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(q1), { cache: 'no-store' }),
+                    () => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(q2), { cache: 'no-store' }),
                 ];
 
-                for (const url of proxies) {
+                for (const attempt of attempts) {
                     try {
-                        const res  = await fetch(url, { cache: 'no-store' });
+                        const res = await attempt();
                         if (!res.ok) continue;
                         const json = await res.json();
-                        const result = json?.chart?.result?.[0];
-                        if (!result) continue;
-                        const timestamps = result.timestamp || [];
-                        const closes     = result.indicators?.quote?.[0]?.close || [];
-                        if (!timestamps.length) continue;
-                        const data = {};
-                        timestamps.forEach((ts, i) => {
-                            if (closes[i] == null) return;
-                            const date = new Date(ts * 1000).toISOString().split('T')[0];
-                            data[date] = { '4. close': String(closes[i]) };
-                        });
-                        if (Object.keys(data).length > 0) {
-                            return { success: true, data, source: 'yahoo' };
-                        }
-                    } catch(e) {
-                        console.warn(`Proxy failed (${url.split('?')[0]}):`, e.message);
-                    }
+                        const data = parseYahoo(json);
+                        if (data) return { success: true, data, source: 'yahoo' };
+                    } catch(e) { /* try next */ }
                 }
 
-                // Fallback: Alpha Vantage (if key is set)
+                // Fallback: Alpha Vantage
                 if (this.config.alphaVantageKey && this.config.alphaVantageKey !== 'YOUR_ALPHA_VANTAGE_KEY') {
                     try {
                         const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${this.config.alphaVantageKey}`;
                         const response = await fetch(url);
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
                         const json = await response.json();
-                        if (!json['Time Series (Daily)']) throw new Error(json['Information'] || json['Error Message'] || 'No data');
+                        if (!json['Time Series (Daily)']) throw new Error(json['Information'] || 'No data');
                         return { success: true, data: json['Time Series (Daily)'], source: 'alphavantage' };
-                    } catch(e) {
-                        console.warn('Alpha Vantage fallback failed:', e.message);
-                    }
+                    } catch(e) { console.warn('Alpha Vantage failed:', e.message); }
                 }
 
-                return { success: false, reason: 'Could not load chart data. Try again in a moment.' };
+                return { success: false, reason: 'Chart data unavailable. All sources failed — try again in a moment.' };
             }
             
             // --- NEW: Finnhub News Fetch (Primary News Source) ---
