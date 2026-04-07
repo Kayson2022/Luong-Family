@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luong Family — Travel Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+/* ── Variables ── */
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#21262d;
+  --border:#30363d; --ink:#e6edf3; --ink2:#8b949e; --ink3:#484f58;
+  --accent:#c9824c; --gold:#c9a84c; --green:#3fb950;
+  --red:#f85149; --blue:#58a6ff; --purple:#bc8cff;
+  --mono:'DM Mono',monospace;
+  --serif:'Playfair Display',serif;
+  --sans:'Syne',sans-serif;
+  --tile-filter:brightness(0.6) invert(1) hue-rotate(200deg) saturate(0.4) contrast(0.85);
+}
+.light {
+  --bg:#f7f3ec; --surface:#ffffff; --surface2:#ede6d9;
+  --border:#e0d6c8; --ink:#1c1814; --ink2:#7a6e60; --ink3:#b0a494;
+  --tile-filter:none;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);transition:background 0.3s,color 0.3s;}
+
+/* ── Gate ── */
+#gate{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:2000;flex-direction:column;gap:28px;
+}
+.gate-bg{
+  position:absolute;inset:0;overflow:hidden;pointer-events:none;
+}
+.gate-bg-text{
+  position:absolute;font-family:var(--serif);font-size:20vw;
+  font-weight:700;color:rgba(201,130,76,0.04);
+  white-space:nowrap;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-8deg);
+  letter-spacing:-2px;
+}
+.gate-card{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  padding:48px 40px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  min-width:320px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.4);
+}
+.gate-icon{font-size:3rem;margin-bottom:4px;}
+.gate-title{
+  font-family:var(--serif);font-size:2rem;
+  color:var(--accent);font-style:italic;text-align:center;
+}
+.gate-sub{
+  font-family:var(--mono);font-size:0.65rem;
+  letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--ink3);text-align:center;margin-top:-12px;
+}
+.gate-input{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--ink);padding:13px 18px;border-radius:8px;
+  font-size:1rem;font-family:var(--mono);width:100%;
+  text-align:center;outline:none;transition:border-color 0.2s;
+}
+.gate-input:focus{border-color:var(--accent);}
+.gate-btn{
+  background:var(--accent);color:#fff;border:none;
+  padding:13px 32px;border-radius:8px;
+  font-family:var(--mono);font-size:0.85rem;
+  font-weight:500;letter-spacing:0.05em;
+  cursor:pointer;transition:opacity 0.2s;width:100%;
+}
+.gate-btn:hover{opacity:0.85;}
+.gate-error{color:var(--red);font-family:var(--mono);
+  font-size:0.75rem;min-height:16px;text-align:center;}
+
+/* ── App Shell ── */
+#app{display:none;height:100vh;flex-direction:column;}
+#app.visible{display:flex;}
+
+/* ── Topbar ── */
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 20px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;z-index:500;gap:12px;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.brand-globe{font-size:1.2rem;}
+.brand-text{
+  font-family:var(--serif);font-size:1.1rem;
+  color:var(--accent);font-style:italic;
+}
+.brand-sep{color:var(--border);font-size:1.2rem;}
+.brand-sub{
+  font-family:var(--mono);font-size:0.6rem;
+  letter-spacing:0.2em;text-transform:uppercase;color:var(--ink3);
+}
+.topbar-center{
+  display:flex;align-items:center;gap:16px;
+  font-family:var(--mono);font-size:0.7rem;color:var(--ink3);
+}
+.stat-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:20px;
+}
+.stat-pill strong{color:var(--accent);font-size:0.85rem;}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.btn{
+  background:transparent;border:1px solid var(--border);
+  color:var(--ink2);padding:6px 14px;border-radius:6px;
+  cursor:pointer;font-family:var(--mono);font-size:0.75rem;
+  transition:all 0.2s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn-accent{
+  background:var(--accent);color:#fff;
+  border-color:var(--accent);font-weight:600;
+}
+.btn-accent:hover{opacity:0.85;color:#fff;}
+
+/* ── Map ── */
+.map-container{flex:1;position:relative;overflow:hidden;}
+#map{width:100%;height:100%;}
+.leaflet-tile{filter:var(--tile-filter);transition:filter 0.3s;}
+.leaflet-tile-pane{filter:var(--tile-filter);}
+
+/* ── Map hint ── */
+.map-hint{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;
+  font-family:var(--mono);font-size:0.65rem;color:var(--ink3);
+  z-index:400;pointer-events:none;
+  opacity:1;transition:opacity 0.5s;
+}
+
+/* ── Detail Panel ── */
+.detail{
+  position:absolute;top:16px;right:16px;
+  width:360px;max-height:calc(100vh - 88px);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);
+  z-index:400;overflow-y:auto;
+  transform:translateX(calc(100% + 20px));
+  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  display:flex;flex-direction:column;
+}
+.detail.open{transform:translateX(0);}
+.detail-close{
+  position:absolute;top:12px;right:12px;
+  background:var(--surface2);border:none;
+  color:var(--ink2);width:28px;height:28px;
+  border-radius:50%;cursor:pointer;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  z-index:10;transition:background 0.2s;
+}
+.detail-close:hover{background:var(--border);}
+
+/* Photos strip */
+.detail-photos{
+  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
+  border-radius:12px 12px 0 0;
+  min-height:200px;background:var(--surface2);
+  scrollbar-width:none;
+}
+.detail-photos::-webkit-scrollbar{display:none;}
+.detail-photos img{
+  flex-shrink:0;width:100%;height:200px;
+  object-fit:cover;scroll-snap-align:start;
+  border-radius:12px 12px 0 0;
+}
+.detail-no-photo{
+  width:100%;min-height:120px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:3rem;background:var(--surface2);
+  border-radius:12px 12px 0 0;
+}
+.photo-dots{
+  display:flex;justify-content:center;gap:5px;
+  padding:8px 0 4px;
+}
+.photo-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--border);transition:background 0.2s;
+}
+.photo-dot.active{background:var(--accent);}
+
+/* Detail body */
+.detail-body{padding:18px 20px 20px;}
+.detail-tag{
+  font-family:var(--mono);font-size:0.6rem;
+  letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:6px;
+}
+.detail-title{
+  font-family:var(--serif);font-size:1.4rem;
+  color:var(--ink);line-height:1.2;margin-bottom:8px;
+}
+.detail-meta{
+  display:flex;gap:10px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:0.65rem;
+  color:var(--ink3);margin-bottom:14px;
+}
+.detail-story{
+  font-size:0.85rem;color:var(--ink2);
+  line-height:1.7;white-space:pre-line;
+}
+.detail-footer{
+  padding:14px 20px;border-top:1px solid var(--border);
+  display:flex;gap:8px;
+}
+
+/* ── Add Trip Modal ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  z-index:900;display:none;align-items:center;
+  justify-content:center;padding:16px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;width:100%;max-width:540px;
+  max-height:90vh;overflow-y:auto;
+}
+.modal-header{
+  padding:20px 24px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{
+  font-family:var(--serif);font-size:1.3rem;color:var(--ink);
+}
+.modal-body{
+  padding:20px 24px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{
+  font-family:var(--mono);font-size:0.62rem;
+  letter-spacing:0.15em;text-transform:uppercase;color:var(--ink3);
+}
+.form-input{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--ink);padding:10px 13px;border-radius:6px;
+  font-family:var(--sans);font-size:0.88rem;
+  outline:none;transition:border-color 0.2s;width:100%;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-textarea{min-height:90px;resize:vertical;font-family:var(--sans);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-hint{
+  font-family:var(--mono);font-size:0.6rem;
+  color:var(--accent);margin-top:3px;
+}
+.modal-footer{
+  padding:14px 24px 20px;border-top:1px solid var(--border);
+  display:flex;gap:8px;justify-content:flex-end;
+}
+.photo-url-list{display:flex;flex-direction:column;gap:6px;}
+.photo-url-row{display:flex;gap:6px;}
+.photo-url-row input{flex:1;}
+.add-url-btn{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--ink2);padding:6px 12px;border-radius:6px;
+  cursor:pointer;font-size:0.8rem;white-space:nowrap;
+  transition:all 0.2s;
+}
+.add-url-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── Pin colors ── */
+.color-row{display:flex;gap:8px;flex-wrap:wrap;}
+.color-opt{
+  width:28px;height:28px;border-radius:50%;
+  cursor:pointer;border:3px solid transparent;
+  transition:border-color 0.2s,transform 0.15s;
+}
+.color-opt.selected,.color-opt:hover{
+  border-color:var(--ink);transform:scale(1.15);
+}
+
+/* ── Empty state ── */
+.map-empty{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:40px 48px;
+  text-align:center;z-index:300;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+}
+.map-empty h3{
+  font-family:var(--serif);font-size:1.4rem;
+  color:var(--ink);margin:12px 0 8px;
+}
+.map-empty p{
+  font-size:0.85rem;color:var(--ink2);
+  line-height:1.6;max-width:280px;margin-bottom:16px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* Mobile */
+@media(max-width:640px){
+  .detail{width:calc(100vw - 16px);right:8px;top:8px;}
+  .topbar-center{display:none;}
+  .brand-sub{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Password Gate ── -->
+<div id="gate">
+  <div class="gate-bg"><div class="gate-bg-text">TRAVEL</div></div>
+  <div class="gate-card">
+    <div class="gate-icon">🗺️</div>
+    <div class="gate-title">Travel Map</div>
+    <div class="gate-sub">Luong Family · Private</div>
+    <input type="password" class="gate-input" id="gateInput"
+      placeholder="Family password"
+      onkeydown="if(event.key==='Enter')unlock()">
+    <button class="gate-btn" onclick="unlock()">Enter ✈️</button>
+    <div class="gate-error" id="gateError"></div>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-globe">🌍</div>
+      <div class="brand-text">Travel Map</div>
+      <div class="brand-sep">·</div>
+      <div class="brand-sub">Luong Family</div>
+    </div>
+    <div class="topbar-center">
+      <div class="stat-pill">✈️ <strong id="statTrips">0</strong> trips</div>
+      <div class="stat-pill">📍 <strong id="statCountries">0</strong> countries</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="toggleTheme()">🌓 Theme</button>
+      <button class="btn btn-accent" onclick="openModal()">+ Add Trip</button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-container">
+    <div id="map"></div>
+    <div class="map-hint" id="mapHint">💡 Click anywhere on the map to copy coordinates when adding a trip</div>
+
+    <!-- Empty state -->
+    <div class="map-empty" id="mapEmpty" style="display:none;">
+      <div style="font-size:3rem;">🗺️</div>
+      <h3>No trips yet</h3>
+      <p>Add your first adventure and it will appear as a pin on the map.</p>
+      <button class="btn btn-accent" onclick="openModal()">+ Add First Trip</button>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="detail" id="detail">
+      <button class="detail-close" onclick="closeDetail()">×</button>
+      <div id="detailInner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Trip Modal ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✈️ Add New Adventure</div>
+      <button class="btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Trip Title *</label>
+        <input class="form-input" id="fTitle" placeholder="e.g. Tokyo Cherry Blossom">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Country / Region *</label>
+          <input class="form-input" id="fCountry" placeholder="Japan">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-input" id="fDate" type="month">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Latitude *</label>
+          <input class="form-input" id="fLat" type="number" step="any" placeholder="35.6762">
+          <div class="form-hint" id="coordHint">Click map to auto-fill ↓</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Longitude *</label>
+          <input class="form-input" id="fLng" type="number" step="any" placeholder="139.6503">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Trip Story</label>
+        <textarea class="form-input form-textarea" id="fStory"
+          placeholder="Write your memories from this adventure..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Photo URLs</label>
+        <div class="photo-url-list" id="photoUrlList">
+          <div class="photo-url-row">
+            <input class="form-input" placeholder="https://... paste image URL">
+          </div>
+        </div>
+        <button class="add-url-btn" onclick="addPhotoUrl()" style="margin-top:6px;">
+          + Add another photo URL
+        </button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pin Color</label>
+        <div class="color-row" id="colorRow"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="saveTrip()">Save Trip 🗺️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────
+const FAMILY_PASSWORD = 'luong2024'; // ← CHANGE THIS
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyB8wQ0-O2avYjRW7Wjtmiql03q1ikwhX7s",
+  authDomain:        "stocks-etfs-mutual.firebaseapp.com",
+  projectId:         "stocks-etfs-mutual",
+  storageBucket:     "stocks-etfs-mutual.firebasestorage.app",
+  messagingSenderId: "326474465163",
+  appId:             "1:326474465163:web:6d140efca04077ba8f1f98e"
+};
+
+const PIN_COLORS = [
+  '#c9824c','#c9a84c','#3fb950','#58a6ff',
+  '#bc8cff','#f85149','#e05c30','#ffffff'
+];
+
+// ── State ───────────────────────────────────────────────────────────
+let db, map, trips = [], markers = {}, activeId = null;
+let isDark = true, selectedColor = PIN_COLORS[0];
+let clickedLat = null, clickedLng = null;
+
+// ── Gate ────────────────────────────────────────────────────────────
+function unlock() {
+  const val = document.getElementById('gateInput').value;
+  if (val === FAMILY_PASSWORD) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initFirebase();
+    initMap();
+    loadTrips();
+  } else {
+    document.getElementById('gateError').textContent = 'Incorrect password.';
+    document.getElementById('gateInput').value = '';
+  }
+}
+document.getElementById('gateInput').focus();
+
+// ── Firebase ────────────────────────────────────────────────────────
+function initFirebase() {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+}
+
+// ── Theme ────────────────────────────────────────────────────────────
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  updateTileFilter();
+}
+function updateTileFilter() {
+  const f = isDark
+    ? 'brightness(0.6) invert(1) hue-rotate(200deg) saturate(0.4) contrast(0.85)'
+    : 'none';
+  document.querySelectorAll('.leaflet-tile-pane').forEach(el => el.style.filter = f);
+}
+
+// ── Map ──────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { zoomControl: true, attributionControl: true })
+          .setView([20, 10], 2);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 18,
+  }).addTo(map);
+
+  // Apply dark filter after tiles load
+  map.on('tileload', () => setTimeout(updateTileFilter, 100));
+  setTimeout(updateTileFilter, 600);
+
+  // Click map → fill coords in modal
+  map.on('click', (e) => {
+    clickedLat = e.latlng.lat.toFixed(4);
+    clickedLng = e.latlng.lng.toFixed(4);
+    if (document.getElementById('modalOverlay').classList.contains('open')) {
+      document.getElementById('fLat').value = clickedLat;
+      document.getElementById('fLng').value = clickedLng;
+      document.getElementById('coordHint').textContent = `✓ Set to ${clickedLat}, ${clickedLng}`;
+    }
+    // Close detail if open and clicking map
+    if (!document.getElementById('modalOverlay').classList.contains('open')) {
+      closeDetail();
+    }
+  });
+
+  // Color picker
+  renderColorPicker();
+}
+
+// ── Color Picker ─────────────────────────────────────────────────────
+function renderColorPicker() {
+  const row = document.getElementById('colorRow');
+  row.innerHTML = PIN_COLORS.map(c =>
+    `<div class="color-opt ${c===selectedColor?'selected':''}"
+      style="background:${c};${c==='#ffffff'?'border:2px solid #888;':''}"
+      onclick="selectColor('${c}',this)"></div>`
+  ).join('');
+}
+function selectColor(c, el) {
+  selectedColor = c;
+  document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Create Pin Icon ───────────────────────────────────────────────────
+function pinIcon(color) {
+  return L.divIcon({
+    html: `<div style="
+      width:34px;height:34px;
+      background:${color};
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      border:3px solid rgba(0,0,0,0.3);
+      box-shadow:0 4px 14px rgba(0,0,0,0.45);
+      display:flex;align-items:center;justify-content:center;">
+      <span style="transform:rotate(45deg);font-size:13px;">✈</span>
+    </div>`,
+    className:'',
+    iconSize:[34,34],
+    iconAnchor:[17,34],
+    popupAnchor:[0,-38],
+  });
+}
+
+// ── Load Trips ────────────────────────────────────────────────────────
+async function loadTrips() {
+  try {
+    const snap = await db.collection('travel_map')
+      .orderBy('date','desc').get();
+    trips = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderAll();
+  } catch(e) {
+    console.error('Firebase load error:', e);
+  }
+}
+
+// ── Render All ────────────────────────────────────────────────────────
+function renderAll() {
+  // Stats
+  const countries = [...new Set(trips.map(t => t.country).filter(Boolean))];
+  document.getElementById('statTrips').textContent     = trips.length;
+  document.getElementById('statCountries').textContent = countries.length;
+
+  // Empty state
+  document.getElementById('mapEmpty').style.display =
+    trips.length === 0 ? 'block' : 'none';
+
+  // Clear old markers
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+
+  // Add markers
+  trips.forEach(t => {
+    if (!t.lat || !t.lng) return;
+    const m = L.marker([t.lat, t.lng], {
+      icon: pinIcon(t.color || PIN_COLORS[0])
+    }).addTo(map);
+    m.bindTooltip(`<b>${t.title}</b><br><small>${t.country} · ${fmtDate(t.date)}</small>`,
+      {direction:'top', offset:[0,-38], className:'leaflet-tooltip'});
+    m.on('click', () => showDetail(t.id));
+    markers[t.id] = m;
+  });
+}
+
+// ── Detail Panel ──────────────────────────────────────────────────────
+function showDetail(id) {
+  const t = trips.find(x => x.id === id);
+  if (!t) return;
+  activeId = id;
+
+  const photos = (t.photos || []).filter(p => p);
+
+  let photosHtml = '';
+  if (photos.length > 0) {
+    photosHtml = `
+      <div class="detail-photos" id="photoStrip">
+        ${photos.map(p =>
+          `<img src="${p}" alt="${t.title}"
+            onerror="this.style.display='none'">`
+        ).join('')}
+      </div>
+      ${photos.length > 1 ? `<div class="photo-dots">
+        ${photos.map((_,i) =>
+          `<div class="photo-dot ${i===0?'active':''}" id="dot${i}"></div>`
+        ).join('')}
+      </div>` : ''}`;
+  } else {
+    photosHtml = `<div class="detail-no-photo">✈️</div>`;
+  }
+
+  document.getElementById('detailInner').innerHTML = `
+    ${photosHtml}
+    <div class="detail-body">
+      <div class="detail-tag">📍 ${t.country}</div>
+      <div class="detail-title">${t.title}</div>
+      <div class="detail-meta">
+        <span>📅 ${fmtDate(t.date)}</span>
+        <span>🌐 ${Number(t.lat).toFixed(2)}°, ${Number(t.lng).toFixed(2)}°</span>
+      </div>
+      <div class="detail-story">${t.story || '<em style="color:var(--ink3)">No story written yet.</em>'}</div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn" style="color:var(--red);border-color:var(--red);"
+        onclick="deleteTrip('${t.id}')">🗑 Delete</button>
+    </div>`;
+
+  // Scroll dots sync
+  if (photos.length > 1) {
+    const strip = document.getElementById('photoStrip');
+    strip.addEventListener('scroll', () => {
+      const idx = Math.round(strip.scrollLeft / strip.clientWidth);
+      document.querySelectorAll('.photo-dot').forEach((d,i) => {
+        d.classList.toggle('active', i === idx);
+      });
+    });
+  }
+
+  document.getElementById('detail').classList.add('open');
+
+  // Fly to pin
+  map.flyTo([t.lat, t.lng], Math.max(map.getZoom(), 5), {duration:1});
+}
+
+function closeDetail() {
+  document.getElementById('detail').classList.remove('open');
+  activeId = null;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('coordHint').textContent = 'Click map to auto-fill ↓';
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  clearForm();
+}
+function addPhotoUrl() {
+  const list = document.getElementById('photoUrlList');
+  const row = document.createElement('div');
+  row.className = 'photo-url-row';
+  row.innerHTML = `
+    <input class="form-input" placeholder="https://... paste image URL">
+    <button class="add-url-btn" onclick="this.parentElement.remove()">×</button>`;
+  list.appendChild(row);
+}
+function clearForm() {
+  ['fTitle','fCountry','fDate','fLat','fLng','fStory'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('photoUrlList').innerHTML =
+    '<div class="photo-url-row"><input class="form-input" placeholder="https://... paste image URL"></div>';
+  selectedColor = PIN_COLORS[0];
+  renderColorPicker();
+}
+
+// ── Save Trip ─────────────────────────────────────────────────────────
+async function saveTrip() {
+  const title   = document.getElementById('fTitle').value.trim();
+  const country = document.getElementById('fCountry').value.trim();
+  const date    = document.getElementById('fDate').value;
+  const lat     = parseFloat(document.getElementById('fLat').value);
+  const lng     = parseFloat(document.getElementById('fLng').value);
+  const story   = document.getElementById('fStory').value.trim();
+
+  if (!title || !country || !date || isNaN(lat) || isNaN(lng)) {
+    alert('Please fill in Title, Country, Date, and map coordinates.');
+    return;
+  }
+
+  const photos = Array.from(
+    document.querySelectorAll('#photoUrlList input')
+  ).map(i => i.value.trim()).filter(v => v);
+
+  try {
+    await db.collection('travel_map').add({
+      title, country, date, lat, lng, story, photos,
+      color: selectedColor,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal();
+    await loadTrips();
+  } catch(e) {
+    alert('Error saving: ' + e.message);
+  }
+}
+
+// ── Delete Trip ───────────────────────────────────────────────────────
+async function deleteTrip(id) {
+  if (!confirm('Delete this trip permanently?')) return;
+  try {
+    await db.collection('travel_map').doc(id).delete();
+    closeDetail();
+    await loadTrips();
+  } catch(e) {
+    alert('Error deleting: ' + e.message);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                  'Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m)-1]||''} ${y}`;
+}
+
+// Hide map hint after 5s
+setTimeout(() => {
+  const h = document.getElementById('mapHint');
+  if (h) h.style.opacity = '0';
+}, 5000);
+
+// Close modal clicking outside
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>
