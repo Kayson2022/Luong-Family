@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -571,21 +572,95 @@
   <footer>LUONG FAMILY · $3M NET WORTH TRACKER · UPDATED MONTHLY</footer>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, initializeFirestore, memoryLocalCache } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 const GOAL      = 3_000_000;
-const STORAGE   = 'luong_networth_v1';
 const MILESTONES= [500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000];
 
-let chart = null;
+const firebaseConfig = {
+    apiKey: "AIzaSyAFnNTpbZc1K8Z_CwEFgCBfdK_rW2-ZlRg",
+    authDomain: "smart-retirement-tracker.firebaseapp.com",
+    projectId: "smart-retirement-tracker",
+    storageBucket: "smart-retirement-tracker.appspot.com",
+    messagingSenderId: "798740254583",
+    appId: "1:798740254583:web:5d0835f78daa7f86fa9b72"
+};
 
-// ── Data ─────────────────────────────────────────────────────────
-function load() {
-  try { return JSON.parse(localStorage.getItem(STORAGE) || '[]'); }
-  catch { return []; }
+const app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+let db, auth, userId;
+try {
+    db = initializeFirestore(app, { localCache: memoryLocalCache() });
+} catch(e) {
+    db = getFirestore(app);
+}
+auth = getAuth(app);
+
+let chart = null;
+let _cachedData = [];
+
+// ── Auth ──────────────────────────────────────────────────────────
+function showStatus(msg, col) {
+  const el = document.getElementById('authStatus');
+  if (el) { el.textContent = msg; el.style.color = col || 'var(--ink3)'; }
 }
 
-function save(data) {
-  localStorage.setItem(STORAGE, JSON.stringify(data));
+async function initAuth() {
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      userId = user.uid;
+      showStatus(user.isAnonymous ? '🔒 Anonymous session' : '✓ Signed in: ' + (user.email || user.displayName), 'var(--green)');
+      subscribeData();
+    } else {
+      try {
+        await signInAnonymously(auth);
+      } catch(e) {
+        showStatus('Auth failed: ' + e.message, 'var(--red)');
+      }
+    }
+  });
+}
+
+async function signInGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    showStatus('Sign in failed: ' + e.message, 'var(--red)');
+  }
+}
+window.signInGoogle = signInGoogle;
+
+// ── Data ─────────────────────────────────────────────────────────
+function subscribeData() {
+  if (!db || !userId) return;
+  const q = query(collection(db, 'users', userId, 'networth'), orderBy('date', 'asc'));
+  onSnapshot(q, snap => {
+    _cachedData = snap.docs.map(d => d.data()).sort((a,b) => a.date.localeCompare(b.date));
+    render(_cachedData);
+  });
+}
+
+function load() { return _cachedData; }
+
+async function saveEntry(date, value) {
+  if (!db || !userId) { alert('Not connected to Firebase yet. Please wait a moment.'); return; }
+  const ref = doc(db, 'users', userId, 'networth', date);
+  await setDoc(ref, { date, value, updated_at: new Date().toISOString() });
+}
+
+async function removeEntry(date) {
+  if (!db || !userId) return;
+  await deleteDoc(doc(db, 'users', userId, 'networth', date));
+}
+
+async function clearAllEntries() {
+  if (!db || !userId) return;
+  const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const all = await getDocs(collection(db, 'users', userId, 'networth'));
+  await Promise.all(all.docs.map(d => deleteDoc(d.ref)));
 }
 
 function fmt(n) {
@@ -599,7 +674,7 @@ function fmtFull(n) {
 }
 
 // ── Add entry ────────────────────────────────────────────────────
-function addEntry() {
+async function addEntry() {
   const dateEl = document.getElementById('entryDate');
   const valEl  = document.getElementById('entryValue');
   const msg    = document.getElementById('entryMsg');
@@ -611,31 +686,23 @@ function addEntry() {
     return;
   }
 
-  const data = load();
-  const existing = data.findIndex(d => d.date === date);
-  if (existing >= 0) {
-    data[existing].value = value;
-  } else {
-    data.push({ date, value });
+  try {
+    await saveEntry(date, value);
+    valEl.value = '';
+    showMsg('Entry saved! Syncing across all devices...', 'ok');
+  } catch(e) {
+    showMsg('Save failed: ' + e.message, 'err');
   }
-  data.sort((a,b) => a.date.localeCompare(b.date));
-  save(data);
-  valEl.value = '';
-  showMsg('Entry saved successfully!', 'ok');
-  render();
 }
 
-function deleteEntry(date) {
-  const data = load().filter(d => d.date !== date);
-  save(data);
-  render();
+async function deleteEntry(date) {
+  await removeEntry(date);
 }
 window.deleteEntry = deleteEntry;
 
-function clearAll() {
+async function clearAll() {
   if (!confirm('Clear all net worth history? This cannot be undone.')) return;
-  save([]);
-  render();
+  await clearAllEntries();
 }
 
 function showMsg(text, type) {
@@ -678,8 +745,8 @@ function estimateYear(data) {
 }
 
 // ── Render ───────────────────────────────────────────────────────
-function render() {
-  const data = load();
+function render(data) {
+  data = data || load();
   const latest = data.length > 0 ? data[data.length-1].value : 0;
   const pct    = Math.min(100, (latest / GOAL) * 100);
   const eta    = estimateYear(data);
@@ -902,8 +969,19 @@ function renderHistory(data) {
   body.innerHTML = rows.join('');
 }
 
-// Init
-render();
+// Add auth status + Google sign-in to UI
+document.addEventListener('DOMContentLoaded', () => {
+  const hint = document.querySelector('footer');
+  if (hint) {
+    const authDiv = document.createElement('div');
+    authDiv.style.cssText = 'text-align:center;font-size:0.6rem;color:var(--ink3);padding:8px;letter-spacing:1px;';
+    authDiv.innerHTML = '<span id="authStatus">Connecting to Firebase...</span> · <a onclick="signInGoogle()" style="color:var(--green);cursor:pointer;text-decoration:none;">Sign in with Google</a>';
+    hint.parentNode.insertBefore(authDiv, hint);
+  }
+});
+
+// Init Firebase auth — data loads automatically via onSnapshot
+initAuth();
 </script>
 </body>
 </html>
