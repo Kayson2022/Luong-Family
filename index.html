@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,6 +17,7 @@
   --red: #c0392b; --red-light: #fdf0ee;
   --amber: #d97706; --amber-light: #fef3e2;
   --blue: #1d6fa4; --blue-light: #e8f3fb;
+  --purple: #7c3aed; --purple-light: #f0ebff;
   --mono: "DM Mono", monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -27,6 +29,7 @@
     --red:#e05c4a; --red-light:#1f0d0a;
     --amber:#f5a623; --amber-light:#1f1505;
     --blue:#5aabdf; --blue-light:#0a1820;
+    --purple:#a78bfa; --purple-light:#1e1040;
   }
 }
 html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"Sora",sans-serif; }
@@ -120,7 +123,8 @@ html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"S
   height:2px; border-radius:2px 2px 0 0; opacity:0; transition:opacity 0.2s ease; }
 .card--stocks::after { background:var(--green); }
 .card--retire::after { background:var(--blue); }
-.card--travel::after { background:var(--amber); }
+.card--travel::after  { background:var(--amber); }
+.card--networth::after { background:var(--purple); }
 .card:hover::after { opacity:1; }
 .card-num { font-family:var(--mono); font-size:0.6rem; color:var(--ink-4); letter-spacing:0.1em; margin-bottom:24px; display:block; }
 .card-icon-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
@@ -128,14 +132,16 @@ html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"S
   font-family:var(--mono); padding:3px 8px; border-radius:4px; font-weight:500; }
 .card--stocks .card-badge { background:var(--green-light); color:var(--green); }
 .card--retire .card-badge  { background:var(--blue-light);  color:var(--blue); }
-.card--travel .card-badge  { background:var(--amber-light); color:var(--amber); }
+.card--travel .card-badge    { background:var(--amber-light);  color:var(--amber); }
+.card--networth .card-badge  { background:var(--purple-light); color:var(--purple); }
 .card-title { font-size:1.15rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); margin-bottom:8px; line-height:1.2; }
 .card-desc { font-size:0.775rem; color:var(--ink-3); line-height:1.6; font-weight:300; margin-bottom:28px; }
 .card-cta { display:flex; align-items:center; justify-content:space-between; }
 .card-cta-label { font-size:0.7rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; font-family:var(--mono); }
 .card--stocks .card-cta-label { color:var(--green); }
 .card--retire .card-cta-label { color:var(--blue); }
-.card--travel .card-cta-label { color:var(--amber); }
+.card--travel .card-cta-label   { color:var(--amber); }
+.card--networth .card-cta-label { color:var(--purple); }
 .card-arrow { width:28px; height:28px; border-radius:50%; border:1px solid var(--border-strong);
   display:flex; align-items:center; justify-content:center; transition:all 0.2s ease; }
 .card:hover .card-arrow { transform:translateX(3px); }
@@ -284,6 +290,22 @@ footer { margin-top:auto; padding:20px 0 28px; border-top:1px solid var(--border
       <div class="card-cta">
         <span class="card-cta-label">Explore</span>
         <div class="card-arrow" style="color:var(--amber);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a class="card card--networth" href="networth/gate.html">
+      <span class="card-num">04 / WEALTH</span>
+      <div class="card-icon-row">
+        <div class="plane-icon">📈</div>
+        <span class="card-badge">Private</span>
+      </div>
+      <h2 class="card-title">$3M<br>Journey</h2>
+      <p class="card-desc">Track net worth growth over time. Milestones, projections, and progress toward the $3,000,000 goal.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">View Timeline</span>
+        <div class="card-arrow" style="color:var(--purple);">
           <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
         </div>
       </div>
