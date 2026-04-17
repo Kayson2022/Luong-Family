@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>$3M Journey — Private</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg: #060a06; --surface: #0d140d; --border: #1a2e1a;
+    --green: #00e676; --red: #ff5252; --ink: #e8f5e9; --ink3: #4a7a4a;
+    --purple: #a78bfa; --mono: 'Space Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); font-family: var(--mono);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,230,118,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,230,118,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .gate {
+    position: relative; z-index: 1;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 380px;
+    text-align: center;
+  }
+  .gate-icon { font-size: 2.5rem; margin-bottom: 16px; }
+  .gate-title {
+    font-size: 1.4rem; font-weight: 700; color: var(--green);
+    margin-bottom: 6px;
+  }
+  .gate-sub {
+    font-size: 0.65rem; letter-spacing: 3px; color: var(--ink3);
+    text-transform: uppercase; margin-bottom: 28px;
+  }
+  .gate-label {
+    display: block; font-size: 0.6rem; letter-spacing: 2px;
+    color: var(--ink3); text-transform: uppercase; text-align: left;
+    margin-bottom: 6px;
+  }
+  .gate-input {
+    width: 100%; padding: 12px 16px;
+    background: #111811; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--ink); font-family: var(--mono);
+    font-size: 1rem; outline: none; margin-bottom: 12px;
+    transition: border-color 0.2s; text-align: center; letter-spacing: 4px;
+  }
+  .gate-input:focus { border-color: var(--green); }
+  .gate-btn {
+    width: 100%; padding: 12px;
+    background: var(--green); color: #000;
+    border: none; border-radius: 8px;
+    font-family: var(--mono); font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s; margin-bottom: 10px;
+  }
+  .gate-btn:hover { opacity: 0.85; }
+  .gate-msg {
+    font-size: 0.75rem; min-height: 20px; margin-top: 4px;
+    transition: color 0.2s;
+  }
+  .gate-hint {
+    font-size: 0.6rem; color: var(--ink3); margin-top: 20px;
+    line-height: 1.8; border-top: 1px solid var(--border); padding-top: 16px;
+  }
+  .gate-hint a {
+    color: var(--purple); text-decoration: none; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div class="gate">
+  <div class="gate-icon">📈</div>
+  <div class="gate-title">$3M Journey</div>
+  <div class="gate-sub">Private — Luong Family</div>
+
+  <label class="gate-label" for="pwInput" id="pwLabel">Enter Password</label>
+  <input type="password" id="pwInput" class="gate-input"
+    placeholder="••••••••" autocomplete="current-password"
+    onkeydown="if(event.key==='Enter') unlock()">
+  <button class="gate-btn" onclick="unlock()">→ Enter</button>
+  <div class="gate-msg" id="gateMsg"></div>
+
+  <div class="gate-hint" id="gateHint"></div>
+</div>
+
+<script>
+const STORAGE_KEY  = 'nw_gate_password';
+const SESSION_KEY  = 'nw_gate_unlocked';
+const DEST         = 'index.html';
+
+function init() {
+  // Already unlocked this session?
+  if (sessionStorage.getItem(SESSION_KEY) === 'yes') {
+    window.location.href = DEST;
+    return;
+  }
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const hint   = document.getElementById('gateHint');
+  const label  = document.getElementById('pwLabel');
+
+  if (!stored) {
+    // First time — set a new password
+    label.textContent = 'Set Your Password';
+    hint.innerHTML = `
+      First visit — choose a password for this page.<br>
+      You'll use this every time you visit.<br><br>
+      <a onclick="clearPw()">Reset password</a>
+    `;
+  } else {
+    hint.innerHTML = `
+      <a onclick="clearPw()">Forgot password? Reset it</a>
+    `;
+  }
+}
+
+function unlock() {
+  const input  = document.getElementById('pwInput').value.trim();
+  const msg    = document.getElementById('gateMsg');
+  const stored = localStorage.getItem(STORAGE_KEY);
+
+  if (!input) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Please enter a password.';
+    return;
+  }
+
+  if (!stored) {
+    // Setting password for first time
+    if (input.length < 4) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = 'Password must be at least 4 characters.';
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, input);
+    msg.style.color = 'var(--green)';
+    msg.textContent = 'Password set! Entering...';
+    sessionStorage.setItem(SESSION_KEY, 'yes');
+    setTimeout(() => window.location.href = DEST, 800);
+  } else {
+    // Checking password
+    if (input === stored) {
+      msg.style.color = 'var(--green)';
+      msg.textContent = '✓ Unlocking...';
+      sessionStorage.setItem(SESSION_KEY, 'yes');
+      setTimeout(() => window.location.href = DEST, 500);
+    } else {
+      msg.style.color = 'var(--red)';
+      msg.textContent = '✗ Incorrect password. Try again.';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+}
+
+function clearPw() {
+  if (confirm('Reset password? You will need to set a new one.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('pwInput').value = '';
+    document.getElementById('gateMsg').textContent = '';
+    init();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
