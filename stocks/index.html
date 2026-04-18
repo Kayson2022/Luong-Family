@@ -2,14 +2,35 @@
 
 
 
+
+
+
+
+
 <!DOCTYPE html>
 
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Live Stocks &amp; Funds Tracker</title>
 <link href="data:," rel="icon"/>
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#181a20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stocks Tracker">
+<!-- Register Service Worker -->
+<script>
+  if ('serviceWorker' in navigator && location.hostname === 'kayson2022.github.io') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('[PWA] Service Worker registered:', reg.scope))
+        .catch(err => console.warn('[PWA] Service Worker failed:', err));
+    });
+  }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
         // Safe Chart.js creator to avoid "Canvas is already in use" errors
@@ -913,7 +934,7 @@
 
         /* --- Modals --- */
         .modal {
-            position: fixed; z-index: 1000;
+            position: fixed; z-index: 6000;
             left: 0; top: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(5px);
@@ -1241,6 +1262,7 @@
         .backup-ok   { background: rgba(0,184,148,0.12); color: #00b894; border: 1px solid rgba(0,184,148,0.25); }
         .backup-fail { background: rgba(231,76,60,0.12);  color: #e74c3c; border: 1px solid rgba(231,76,60,0.25); }
         .backup-busy { background: rgba(108,92,231,0.12); color: #6c5ce7; border: 1px solid rgba(108,92,231,0.25); }
+
 </style>
 <style id="neon-theme-overrides">
 /* ============================================================
@@ -1641,7 +1663,7 @@ button {
 /* ==== STEP: Prototype-style Portfolio Summary Banner (safe with JS className overwrites) ==== */
 #portfolio-summary.portfolio-summary{
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   border-radius: 22px;
   padding: 18px 18px 16px;
   margin: 14px 0 14px;
@@ -2672,13 +2694,19 @@ body.dark-mode .modal-content {
     .modal-content {
         width: 100% !important;
         max-width: 100% !important;
-        max-height: 92vh !important;
+        max-height: 88vh !important;
+        max-height: 88dvh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
         border-radius: 18px 18px 0 0 !important;
         margin-top: auto !important;
         padding: 18px !important;
     }
     .modal {
         align-items: flex-end !important;
+        height: 100% !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
     }
 
     /* List All modal cards — 2 cols */
@@ -2692,6 +2720,12 @@ body.dark-mode .modal-content {
 
     /* Small countdown */
     .small-countdown { font-size: 0.75rem; padding: 5px 10px; bottom: 8px; left: 8px; }
+
+    /* Sleep-at-Night + Coast FIRE — stack to 1 col on small phones */
+    #san-coast-grid {
+        grid-template-columns: 1fr !important;
+    }
+
 }
 
 /* ── Tablets (481px – 768px) ── */
@@ -2717,7 +2751,7 @@ body.dark-mode .modal-content {
   /* Summary stats 2-col on mobile */
   #portfolio-summary .summary-stats { grid-template-columns: repeat(2, 1fr) !important; }
   /* Modals full width */
-  .modal-content { width: 96vw !important; max-width: 96vw !important; padding: 16px !important; }
+  .modal-content { width: 96vw !important; max-width: 96vw !important; padding: 16px !important; max-height: 88vh !important; max-height: 88dvh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
   /* Toolbar panels full width */
   .st-panel { margin: 0 !important; border-radius: 0 !important; }
   /* Chart range buttons — smaller on mobile */
@@ -2728,6 +2762,26 @@ body.dark-mode .modal-content {
   [id^="earn-section-"], [id^="divnext-section-"] {
     overflow: visible !important;
   }
+}
+
+/* Settings modal mobile overrides — scoped, must come last */
+@media (max-width: 480px) {
+    #settingsModal .modal-content {
+        max-height: 85dvh !important;
+        max-height: 85vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 32px !important;
+    }
+    #settingsModal .add-btn {
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 44px !important;
+    }
+    #settingsModal #modal-save-settings-btn {
+        width: 100% !important;
+        margin-top: 8px !important;
+    }
 }
 @media (max-width: 768px) {
   /* Fundamentals grid 1-col on tablet */
@@ -2889,6 +2943,13 @@ body.dark-mode .modal-content {
   <button class="st-toolbar-btn" data-st-panel="journal">📓 Trade Journal</button>
   <button class="st-toolbar-btn" data-st-panel="divcal">💰 Div Calendar</button>
   <button class="st-toolbar-btn" data-st-panel="perfstats">📉 Perf Stats</button>
+  <button class="st-toolbar-btn" data-st-panel="var">📐 VaR Stress</button>
+  <button class="st-toolbar-btn" data-st-panel="divwaterfall">💧 Div Waterfall</button>
+  <button class="st-toolbar-btn" data-st-panel="anomaly">🚨 Anomaly</button>
+  <button class="st-toolbar-btn" data-st-panel="askai">💬 Ask Portfolio</button>
+  <button class="st-toolbar-btn" data-st-panel="exposure">🔬 True Exposure</button>
+  <button class="st-toolbar-btn" data-st-panel="overlap">🔍 ETF Overlap</button>
+  <button class="st-toolbar-btn" data-st-panel="aidoctor">🩺 AI Doctor</button>
   <button class="st-toolbar-btn" data-st-panel="schedd">📄 Schedule D</button>
   <button class="st-toolbar-btn" data-st-panel="compact" id="stCompactBtn">⊞ Compact</button>
 </div>
@@ -2913,6 +2974,13 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
     journal:  'renderJournal',
     divcal:   'renderDivCalendar',
     perfstats:'renderPerfStats',
+    var:      'renderVaR',
+    divwaterfall:'renderDividendWaterfall',
+    anomaly:  'renderAnomaly',
+    askai:    'renderAskPortfolio',
+    overlap:  'renderOverlap',
+    exposure: 'renderTrueExposure',
+    aidoctor: 'renderAIDoctor',
     schedd:   'renderSchedD',
   };
   if (key === 'compact') {
@@ -2985,11 +3053,110 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
   <div class="st-panel-sub">Monthly dividend income by stock — projected annual income, yield on cost, and a 12-month payment calendar.</div>
   <div id="stDivCalContent"></div>
 </div>
+<div id="stVarPanel" class="st-panel">
+  <div class="st-panel-title">📐 Value at Risk (VaR) — 24-Hour Stress Test</div>
+  <div class="st-panel-sub">Statistical probability of daily loss at 90%, 95%, and 99% confidence. Uses your real portfolio history — no guesswork.</div>
+  <div id="stVarContent"></div>
+</div>
+<div id="stDivWaterfallPanel" class="st-panel">
+  <div class="st-panel-title">💧 Dividend Waterfall — 12-Month Projected Income</div>
+  <div class="st-panel-sub">Forward projection of every dividend payment hitting your account over the next 12 months, by symbol and month. Toggle Current Yield vs Yield on Cost.</div>
+  <div id="stDivWaterfallContent"></div>
+</div>
 <div id="stPerfStatsPanel" class="st-panel">
   <div class="st-panel-title">📉 Performance Stats</div>
   <div class="st-panel-sub">CAGR, max drawdown, best/worst single day, win rate on closed positions, and average hold time.</div>
   <div id="stPerfStatsContent"></div>
 </div>
+<div id="stExposurePanel" class="st-panel">
+  <div class="st-panel-title">🔬 True Exposure — Look-Through Analysis</div>
+  <div class="st-panel-sub">Shows your real exposure to each company by combining direct holdings + look-through of ETF holdings. Blue bar = what you own directly. Orange bar = additional exposure through your ETFs.</div>
+  <div id="stExposureContent"></div>
+</div>
+<div id="stOverlapPanel" class="st-panel">
+  <div class="st-panel-title">🔍 ETF Overlap Detector</div>
+  <div class="st-panel-sub">Detects duplicate and overlapping funds in your portfolio. Flags "same index, different name" pairs and shadow overlap from shared top holdings.</div>
+  <div id="stOverlapContent"></div>
+</div>
+<div id="stAnomalyPanel" class="st-panel">
+  <div class="st-panel-title">🚨 Anomaly Detector — AI Market Watchdog</div>
+  <div class="st-panel-sub">Detects statistically abnormal price moves in your holdings using Z-score deviation from expected beta-adjusted returns. AI explains what it found.</div>
+  <div id="stAnomalyContent"></div>
+</div>
+<div id="stAskAiPanel" class="st-panel">
+  <div class="st-panel-title">💬 Ask Your Portfolio — Natural Language Query</div>
+  <div class="st-panel-sub">Ask anything about your holdings in plain English. Claude reads your live portfolio data and answers with your exact numbers.</div>
+  <div id="stAskAiContent"></div>
+</div>
+<div id="stAidoctorPanel" class="st-panel">
+  <div class="st-panel-title">🩺 AI Portfolio Doctor</div>
+  <div class="st-panel-sub">Deep AI analysis of your entire portfolio — concentration risk, sector gaps, diversification score, and personalized recommendations.</div>
+
+  <!-- Analysis mode buttons -->
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+    <button onclick="window.runAIDoctor('full')" id="doctorBtnFull"
+      style="padding:8px 16px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;
+      border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+      🩺 Full Checkup
+    </button>
+    <button onclick="window.runAIDoctor('risk')" id="doctorBtnRisk"
+      style="padding:8px 16px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;
+      border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+      ⚠️ Risk Analysis
+    </button>
+    <button onclick="window.runAIDoctor('diversification')" id="doctorBtnDiv"
+      style="padding:8px 16px;background:linear-gradient(135deg,#27ae60,#229954);color:#fff;
+      border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+      🌐 Diversification
+    </button>
+    <button onclick="window.runAIDoctor('retirement')" id="doctorBtnRet"
+      style="padding:8px 16px;background:linear-gradient(135deg,#f39c12,#d68910);color:#fff;
+      border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+      🎯 Retirement Fit
+    </button>
+    <button onclick="window.runAIDoctor('action')" id="doctorBtnAction"
+      style="padding:8px 16px;background:linear-gradient(135deg,#00bcd4,#0097a7);color:#fff;
+      border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+      📋 Action Plan
+    </button>
+  </div>
+
+  <!-- Score cards -->
+  <div id="doctorScores" style="display:none;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
+      <div style="background:var(--card-bg,#111);border:1px solid var(--border-color);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">DIVERSIFICATION</div>
+        <div id="scoreDiv" style="font-size:24px;font-weight:700;">—</div>
+        <div style="font-size:10px;color:var(--text-secondary);">/ 100</div>
+      </div>
+      <div style="background:var(--card-bg,#111);border:1px solid var(--border-color);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">RISK LEVEL</div>
+        <div id="scoreRisk" style="font-size:18px;font-weight:700;">—</div>
+      </div>
+      <div style="background:var(--card-bg,#111);border:1px solid var(--border-color);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">CONCENTRATION</div>
+        <div id="scoreConc" style="font-size:18px;font-weight:700;">—</div>
+      </div>
+      <div style="background:var(--card-bg,#111);border:1px solid var(--border-color);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">TOP HOLDING</div>
+        <div id="scoreTop" style="font-size:18px;font-weight:700;">—</div>
+      </div>
+      <div style="background:var(--card-bg,#111);border:1px solid var(--border-color);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">POSITIONS</div>
+        <div id="scorePos" style="font-size:24px;font-weight:700;">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Result -->
+  <div id="doctorResult" style="display:none;"></div>
+
+  <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:12px;padding-top:8px;
+    border-top:1px solid var(--border-color);">
+    Generated by Gemini AI · For educational purposes only · Not financial advice
+  </div>
+</div>
+
 <div id="stSchedDPanel" class="st-panel">
   <div class="st-panel-title">📄 Schedule D Export</div>
   <div class="st-panel-sub">IRS Schedule D CSV — Part I (short-term) and Part II (long-term) from your transaction history. Select the tax year.</div>
@@ -3039,6 +3206,57 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
 <div class="summary-item-value"><span class="summary-value" id="fund-count-value">0</span></div>
 </div>
 </div>
+</div>
+<!-- Sleep-at-Night + Coast FIRE — OUTSIDE portfolio-inner, spans full card width -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;" id="san-coast-grid">
+
+  <!-- SLEEP AT NIGHT -->
+  <div style="position:relative;padding:10px 14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div style="font-size:0.58rem;color:rgba(255,255,255,0.6);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">😴 Sleep-at-Night Index</div>
+      <button onclick="document.getElementById('san-info').style.display=document.getElementById('san-info').style.display==='none'?'block':'none'"
+        style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;color:rgba(255,255,255,0.7);font-size:0.6rem;padding:1px 6px;cursor:pointer;line-height:1.4;flex-shrink:0;">ℹ️ How it works</button>
+    </div>
+    <div id="san-info" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,0.3);border-radius:6px;font-size:0.68rem;color:rgba(255,255,255,0.75);line-height:1.6;">
+      <strong style="color:#27ae60;">What it measures:</strong> How comfortable your portfolio is to hold — combining <em>volatility</em> and <em>dividend income</em>.<br><br>
+      <strong style="color:#27ae60;">Score breakdown (0–100):</strong><br>
+      • <strong>Volatility (0–50 pts):</strong> Lower swings = more pts. Under 10%/yr = full 50 pts. Over 40%/yr = 0 pts.<br>
+      • <strong>Dividends (0–50 pts):</strong> Higher yield = more pts. 5%+ yield = full 50 pts. 0% = 0 pts.<br><br>
+      <strong style="color:#27ae60;">Ratings:</strong> 🟢 75+ Peaceful · 🟡 50+ Moderate · 🟠 25+ Restless · 🔴 Alarming<br><br>
+      <em style="color:rgba(255,255,255,0.5);">Updates automatically on every 🔄 Live Update. Needs 10+ days of portfolio history for full score.</em>
+    </div>
+    <div id="san-value" style="font-size:0.95rem;font-weight:800;color:#27ae60;">--</div>
+    <div id="san-detail" style="font-size:0.62rem;color:rgba(255,255,255,0.5);margin-top:2px;">Hit 🔄 Live Update to calculate</div>
+  </div>
+
+  <!-- COAST FIRE -->
+  <div style="position:relative;padding:10px 14px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <div style="font-size:0.58rem;color:rgba(255,255,255,0.6);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">🏖 Coast FIRE Progress</div>
+      <button onclick="document.getElementById('coast-info').style.display=document.getElementById('coast-info').style.display==='none'?'block':'none'"
+        style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;color:rgba(255,255,255,0.7);font-size:0.6rem;padding:1px 6px;cursor:pointer;line-height:1.4;flex-shrink:0;">ℹ️ How it works</button>
+    </div>
+    <div id="coast-info" style="display:none;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,0.3);border-radius:6px;font-size:0.68rem;color:rgba(255,255,255,0.75);line-height:1.6;">
+      <strong style="color:#3498db;">What it means:</strong> The $ amount your portfolio needs TODAY so it can grow to your retirement goal purely from compound growth — <em>without adding another dollar.</em><br><br>
+      <strong style="color:#3498db;">The formula:</strong><br>
+      <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:0.72rem;">Coast # = Retirement Goal ÷ (1 + Growth%)^Years</code><br><br>
+      <strong style="color:#3498db;">Example:</strong> Goal $2.5M, 25 years, 9% growth:<br>
+      $2,500,000 ÷ (1.09)²⁵ = <strong>$298,000 needed today</strong><br><br>
+      <strong style="color:#3498db;">Setup required:</strong> Click ⚙️ Settings → enter:<br>
+      • Retirement Goal ($)<br>
+      • Years Until Retirement<br>
+      • Expected Annual Growth Rate (%)<br><br>
+      <em style="color:rgba(255,255,255,0.5);">Progress bar = your current portfolio ÷ coast number. 100% = you never need to invest again!</em>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+      <div style="flex:1;background:rgba(0,0,0,0.3);border-radius:999px;height:8px;overflow:hidden;">
+        <div id="coast-bar" style="height:100%;border-radius:999px;background:#3498db;width:0%;transition:width 0.8s;"></div>
+      </div>
+      <span id="coast-pct" style="font-size:0.8rem;font-weight:800;color:rgba(255,255,255,0.9);min-width:38px;text-align:right;">--%</span>
+    </div>
+    <div id="coast-detail" style="font-size:0.62rem;color:rgba(255,255,255,0.5);">Set goal in ⚙️ Settings</div>
+  </div>
+
 </div>
 <div class="utility-buttons-grid">
 <button class="add-btn" id="liveUpdateBtn">🔄 Live Update</button>
@@ -3250,7 +3468,7 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
 </div>
 </div>
 <div class="modal" id="settingsModal" style="display: none;">
-<div class="modal-content">
+<div class="modal-content" style="max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;">
 <button class="close-modal-btn" id="closeSettingsBtn">×</button>
 <h3 class="modal-title">Settings</h3>
 <div class="transaction-input-group">
@@ -3276,6 +3494,18 @@ document.getElementById('stToolbarRow').addEventListener('click', function(e) {
 <div class="transaction-input-group">
 <label for="sign-out-other-sessions-btn">Security:</label>
 <button class="add-btn btn-danger" id="sign-out-other-sessions-btn">🔒 Sign Out on All Other Devices</button>
+</div>
+<div class="transaction-input-group">
+<label>🏖 Retirement Goal ($) — for Coast FIRE tracker:</label>
+<input class="search-input" id="modal-retirement-goal" placeholder="e.g. 2,400,000" type="text" inputmode="numeric"/>
+</div>
+<div class="transaction-input-group">
+<label>⏳ Years Until Retirement — for Coast FIRE tracker:</label>
+<input class="search-input" id="modal-years-to-retirement" placeholder="e.g. 25" type="number" min="1" max="50"/>
+</div>
+<div class="transaction-input-group">
+<label>📈 Expected Annual Growth Rate (%) — for Coast FIRE tracker:</label>
+<input class="search-input" id="modal-growth-rate" placeholder="e.g. 9  (S&P 500 historical avg)" type="number" min="1" max="30" step="0.5"/>
 </div>
 <button class="add-btn" id="modal-save-settings-btn">Save Settings</button>
 </div>
@@ -4207,6 +4437,9 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                 }
                 this.apiService = new ApiService(this.config);
                 this.cacheDOMElements();
+                this.config.retirementGoal = parseFloat(localStorage.getItem('coastFireGoal')) || 0;
+                this.config.yearsToRetirement = parseFloat(localStorage.getItem('coastFireYears')) || 25;
+                this.config.coastGrowthRate = parseFloat(localStorage.getItem('coastFireRate')) || 9;
                 this.setupEventListeners();
                 this.applyTheme();
                 this.applyPrivacyMode();
@@ -4319,6 +4552,18 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                         if (keys.marketstackKey) this.config.marketstackApiKey = keys.marketstackKey;
                         if (keys.refreshIntervalMs) this.config.refreshIntervalMs = keys.refreshIntervalMs;
 
+                        // Load Coast FIRE settings from Firestore (syncs across devices)
+                        const cf = data.coastFire || {};
+                        if (cf.goal)  {
+                            this.config.retirementGoal  = cf.goal;
+                            this.config.yearsToRetirement = cf.years || this.config.yearsToRetirement;
+                            this.config.coastGrowthRate   = cf.rate  || this.config.coastGrowthRate;
+                            // Also sync to localStorage so it works offline
+                            localStorage.setItem('coastFireGoal',  cf.goal);
+                            localStorage.setItem('coastFireYears', cf.years || 25);
+                            localStorage.setItem('coastFireRate',  cf.rate  || 9);
+                        }
+
                         // Update Settings modal inputs if available
                         if (this.elements && this.elements.modalFinnhubKey) {
                             this.elements.modalFinnhubKey.value = this.config.finnhubApiKey;
@@ -4376,6 +4621,9 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                     modalAlphaVantageKey: document.getElementById('modal-alpha-vantage-key'),
                     modalFmpKey: document.getElementById('modal-fmp-key'),
                     modalRefreshInterval: document.getElementById('modal-refresh-interval'),
+                    modalRetirementGoal: document.getElementById('modal-retirement-goal'),
+                    modalYearsToRetirement: document.getElementById('modal-years-to-retirement'),
+                    modalGrowthRate: document.getElementById('modal-growth-rate'),
                     modalSaveSettingsBtn: document.getElementById('modal-save-settings-btn'),
                     enablePushNotificationsBtn: document.getElementById('enable-push-notifications-btn'),
                     signOutOtherSessionsBtn: document.getElementById('sign-out-other-sessions-btn'),
@@ -4651,7 +4899,7 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
             
             handleCardAction(event) {
                 // 1. Check for specific buttons first — these should NOT trigger card expand
-                const clickedButton = event.target.closest('.transaction-btn, .edit-btn, .edit-transaction-btn, .delete-transaction-btn, .set-alert-btn, .move-to-portfolio-btn, .chart-range-btn');
+                const clickedButton = event.target.closest('.transaction-btn, .edit-btn, .edit-transaction-btn, .delete-transaction-btn, .set-alert-btn, .move-to-portfolio-btn, .chart-range-btn, .add-btn, .card-news-btn, .remove-btn');
                 
                 // 2. FIX: Check for Transaction Header (Arrow) Click BEFORE checking for the general card click
                 const transactionHeader = event.target.closest('.transaction-header');
@@ -4675,10 +4923,28 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                     event.stopPropagation();
                     const card = clickedButton.closest('.stock-card, .fund-card');
                     if (card) {
+                        const wasExpanded = card.classList.contains('expanded');
                         card.classList.add('expanded'); // ensure chart area is visible
                         const symbol = card.dataset.symbol;
                         const range = clickedButton.dataset.range;
-                        this.renderCardChart(symbol, range);
+                        // If card was already expanded, render immediately
+                        // If just expanded, wait for CSS transition then verify canvas is visible
+                        if (wasExpanded) {
+                            this.renderCardChart(symbol, range);
+                        } else {
+                            const tryRenderRange = (attempts) => {
+                                const c2 = document.querySelector(`.stock-card[data-symbol="${symbol}"], .fund-card[data-symbol="${symbol}"]`);
+                                const cv = c2 ? document.getElementById(`chart-${c2.dataset.id}`) : null;
+                                if (cv && cv.offsetWidth > 0) {
+                                    this.renderCardChart(symbol, range);
+                                } else if (attempts > 0) {
+                                    setTimeout(() => tryRenderRange(attempts - 1), 150);
+                                } else {
+                                    this.renderCardChart(symbol, range);
+                                }
+                            };
+                            setTimeout(() => tryRenderRange(5), 300);
+                        }
                     }
                     return;
                 }
@@ -4688,11 +4954,28 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                     const card = event.target.closest('.stock-card, .fund-card');
                     if (card) {
                         if (card.classList.contains('closed-position')) return;
+                        // Debounce: ignore rapid double-clicks within 700ms
+                        const now = Date.now();
+                        const last = parseInt(card.dataset.lastToggle || '0', 10);
+                        if (now - last < 700) return;
+                        card.dataset.lastToggle = now;
                         card.classList.toggle('expanded');
                         const hint = card.querySelector('.card-tap-hint');
                         if (hint) hint.textContent = card.classList.contains('expanded') ? '▲ tap to collapse' : '▼ tap card to see chart';
                         if (card.classList.contains('expanded')) {
-                            this.renderCardChart(card.dataset.symbol);
+                            // Wait for CSS transition (0.6s max-height) before rendering chart
+                            // so canvas has non-zero dimensions when Chart.js measures it
+                            const tryRender = (attempts) => {
+                                const canvas = document.getElementById(`chart-${card.dataset.id}`);
+                                if (canvas && canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                                    this.renderCardChart(card.dataset.symbol);
+                                } else if (attempts > 0) {
+                                    setTimeout(() => tryRender(attempts - 1), 150);
+                                } else {
+                                    this.renderCardChart(card.dataset.symbol);
+                                }
+                            };
+                            setTimeout(() => tryRender(5), 300);
                         }
                     }
                     return;
@@ -5235,6 +5518,18 @@ return { success: false, symbol, reason: `Alpha Vantage Error: ${error.message}`
                         Object.assign(item, result.data);
                         const newChangePercent = Number(item.changePercent) || 0;
 
+                        // ── Record daily price snapshot for Correlation Matrix ──
+                        if (item.price > 0) {
+                            const today = new Date().toISOString().slice(0, 10);
+                            if (!item.priceHistory) item.priceHistory = [];
+                            const last = item.priceHistory[item.priceHistory.length - 1];
+                            if (!last || last.date !== today) {
+                                item.priceHistory.push({ date: today, price: item.price });
+                                // Keep last 90 days max to avoid storage bloat
+                                if (item.priceHistory.length > 90) item.priceHistory.shift();
+                            }
+                        }
+
                         if ((prevChangePercent >= 0 && newChangePercent < 0) || (prevChangePercent < 0 && newChangePercent >= 0)) {
                             needsGroupRerender = true;
                         }
@@ -5419,9 +5714,63 @@ renderPortfolioSummary() {
                 const chartValueEl = document.getElementById('chart-current-value');
                 if (chartValueEl) {
                     chartValueEl.textContent = this.formatCurrency(combinedMetrics.totalCurrentValue);
-                    // Also update its color based on today's P/L
                     chartValueEl.classList.remove('positive', 'negative');
                     chartValueEl.classList.add(totalPLTodayFinal >= 0 ? 'positive' : 'negative');
+                }
+
+                // ── Sleep-at-Night Index ──
+                {
+                    const sanEl = document.getElementById('san-value');
+                    const sanDt = document.getElementById('san-detail');
+                    const _h = this.portfolioHistory || [];
+                    const _tv = combinedMetrics.totalCurrentValue || 0;
+                    const _ad = combinedMetrics.totalDividends || 0;
+                    let volScore = 25, divScore = 0, details = [], hasVol = false;
+                    if (_h.length >= 10) {
+                        const vals = _h.map(h=>h.value);
+                        const dps = [];
+                        for (let i=1;i<vals.length;i++) if(vals[i-1]>0) dps.push((vals[i]-vals[i-1])/vals[i-1]*100);
+                        if (dps.length > 0) {
+                            const mean = dps.reduce((s,v)=>s+v,0)/dps.length;
+                            const vol = Math.sqrt(dps.reduce((s,v)=>s+Math.pow(v-mean,2),0)/dps.length)*Math.sqrt(252);
+                            volScore = Math.max(0, Math.min(50, 50-(vol-10)*1.25));
+                            details.push('Vol: '+vol.toFixed(1)+'%/yr'); hasVol = true;
+                        }
+                    }
+                    if (_tv>0 && _ad>0) {
+                        const dy = (_ad/_tv)*100;
+                        divScore = Math.min(50, dy*10);
+                        details.push('Div: '+dy.toFixed(1)+'%');
+                    }
+                    const score = Math.min(100, Math.max(0, Math.round(volScore+divScore)));
+                    const label = score>=75?'🟢 '+score+' Peaceful':score>=50?'🟡 '+score+' Moderate':score>=25?'🟠 '+score+' Restless':'🔴 '+score+' Alarming';
+                    if (sanEl) sanEl.textContent = label;
+                    if (sanDt) sanDt.textContent = !hasVol ? '⏳ Needs 10+ days history · '+(details.join(' · ')||'') : details.join(' · ');
+                }
+
+                // ── Coast FIRE Progress ──
+                {
+                    const cBar = document.getElementById('coast-bar');
+                    const cPct = document.getElementById('coast-pct');
+                    const cDet = document.getElementById('coast-detail');
+                    const _cv = combinedMetrics.totalCurrentValue || 0;
+                    const _g  = parseFloat((this.config&&this.config.retirementGoal)||localStorage.getItem('coastFireGoal')||0);
+                    const _y  = parseFloat((this.config&&this.config.yearsToRetirement)||localStorage.getItem('coastFireYears')||25);
+                    const fc  = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
+                    if (!_g || _g<=0) {
+                        if (cDet) cDet.textContent = 'Set goal in ⚙️ Settings → Retirement Goal ($)';
+                        return;
+                    }
+                    const _r = parseFloat((this.config&&this.config.coastGrowthRate)||localStorage.getItem('coastFireRate')||9) / 100;
+                    const coastNum = _g / Math.pow(1 + _r, _y);
+                    const pct = Math.min(200, (_cv/coastNum)*100);
+                    const reached = pct >= 100;
+                    if (cBar) { cBar.style.width=Math.min(100,pct).toFixed(1)+'%'; cBar.style.background=reached?'#27ae60':pct>=75?'#f39c12':'#3498db'; }
+                    if (cPct) { cPct.textContent=pct.toFixed(0)+'%'; cPct.style.color=reached?'#27ae60':'rgba(255,255,255,0.9)'; }
+                    if (cDet) {
+                        if (reached) { cDet.innerHTML='🎉 <strong>Coast FIRE reached!</strong> Your $'+fc(_cv)+' will compound to '+fc(_g)+' in '+_y+' yrs @ '+(_r*100).toFixed(1)+'%/yr — zero new contributions needed.'; cDet.style.color='#27ae60'; }
+                        else { cDet.innerHTML='<strong>Formula:</strong> $'+fc(_g)+' ÷ (1+'+(_r*100).toFixed(1)+'%)^'+_y+'yrs = Coast# $'+fc(coastNum)+'<br>You have $'+fc(_cv)+' — need $'+fc(Math.max(0,coastNum-_cv))+' more.'; cDet.style.color='rgba(255,255,255,0.55)'; }
+                    }
                 }
             }
 
@@ -5940,6 +6289,31 @@ renderPortfolioSummary() {
 
                 if (all.length === 0) return `<p style="text-align: center; color: var(--text-secondary); padding: 5px;">No transactions recorded.</p>`;
 
+                // ── Wash-Sale detection helper ──
+                // A wash sale occurs when you sell at a loss and buy the same
+                // stock within 30 days before OR after the sale date.
+                const buysOnly  = (transactions||[]).filter(t=>t.type==='buy');
+                const sellsOnly = (transactions||[]).filter(t=>t.type==='sell');
+                const isWashSale = (sellEntry) => {
+                    if (sellEntry.type !== 'sell') return false;
+                    const sellDate = new Date(sellEntry.date);
+                    const sellValue = sellEntry.shares * sellEntry.price;
+                    // Estimate cost basis for this sell (simplified FIFO)
+                    const buyCopy = buysOnly.map(b=>({...b,rem:b.shares})).sort((a,b)=>new Date(a.date)-new Date(b.date));
+                    let cost = 0, need = sellEntry.shares;
+                    for (const lot of buyCopy) {
+                        if (need <= 0) break;
+                        const u = Math.min(need, lot.rem); cost += u * lot.price; lot.rem -= u; need -= u;
+                    }
+                    if (sellValue >= cost) return false; // only flag losses
+                    // Check if any buy is within 30 days before or after the sell
+                    return buysOnly.some(b => {
+                        const buyDate = new Date(b.date);
+                        const diff = Math.abs(buyDate - sellDate) / (1000*60*60*24);
+                        return diff <= 30 && diff > 0; // exclude the sell date itself
+                    });
+                };
+
                 return all.map(entry => {
                     if (entry.kind === 'dividend') {
                         return `
@@ -5957,6 +6331,13 @@ renderPortfolioSummary() {
                     } else {
                         const transactionClass = entry.type === 'buy' ? 'buy' : 'sell';
                         const actionText = entry.type.toUpperCase();
+                        const washSale = isWashSale(entry);
+                        const washWarning = washSale ? `
+                            <span style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;
+                                padding:3px 8px;background:rgba(243,156,18,0.12);border:1px solid rgba(243,156,18,0.4);
+                                border-radius:5px;font-size:0.72rem;font-weight:600;color:#f39c12;">
+                                ⚠️ Possible Wash Sale — buy within 30 days of this loss sale. IRS disallows the loss deduction.
+                            </span>` : '';
                         return `
                             <div class="transaction-entry">
                                 <div class="transaction-info">
@@ -5965,6 +6346,7 @@ renderPortfolioSummary() {
                                         ${entry.platform || 'Unspecified'} - ${new Date(entry.date).toLocaleDateString()}
                                     </span>
                                     ${entry.note ? `<span style="font-style: italic; color: var(--text-secondary); font-size: 0.8rem;">Note: ${entry.note}</span>` : ''}
+                                    ${washWarning}
                                 </div>
                                 <div class="transaction-entry-controls">
                                     <button data-index="${entry.index}" class="edit-transaction-btn">Edit</button>
@@ -6162,6 +6544,22 @@ renderPortfolioSummary() {
                         <div class="total-pl ${todayPL >= 0 ? 'positive' : 'negative'}">${type !== 'watchlist' ? `P/L Today: ${this.formatCurrency(todayPL)}` : ''}</div>
                         ${cardActionsHTML}
                         ${type !== 'watchlist' ? `
+                        <!-- Collapsible bottom features section -->
+                        <div style="margin-top:10px;border-top:1px solid var(--border-color);padding-top:4px;">
+                          <button onclick="event.stopPropagation();(function(){
+                            var wrap=document.getElementById('extra-wrap-${item.id}');
+                            var icon=document.getElementById('extra-chevron-${item.id}');
+                            var open=wrap.style.display!=='none';
+                            wrap.style.display=open?'none':'block';
+                            icon.textContent=open?'▼ More Info':'▲ Less Info';
+                          })()"
+                            style="width:100%;text-align:center;background:var(--bg-tertiary);
+                            border:1px solid var(--border-color);border-radius:8px;cursor:pointer;
+                            font-size:0.75rem;font-weight:600;color:var(--text-secondary);
+                            padding:7px 0;display:flex;align-items:center;justify-content:center;gap:6px;">
+                            <span id="extra-chevron-${item.id}">▼ More Info</span>
+                          </button>
+                          <div id="extra-wrap-${item.id}" style="display:none;">
                         <div class="card-news-section" id="news-section-${item.id}" style="margin-top:10px;border-top:1px solid var(--border-color);padding-top:8px;">
                           <button class="card-news-btn" onclick="event.stopPropagation();window.stToggleCardNews('${item.id}','${item.symbol}')"
                             style="width:100%;text-align:left;background:transparent;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;color:var(--text-secondary);padding:4px 0;display:flex;align-items:center;gap:6px;">
@@ -6201,7 +6599,10 @@ renderPortfolioSummary() {
                             <span id="divnext-chevron-${item.id}" style="font-size:0.65rem;transition:transform 0.2s;">▶</span>
                           </button>
                           <div id="divnext-content-${item.id}" style="display:none;margin-top:8px;"></div>
-                        </div>` : ''}
+                        </div>
+                          </div><!-- end extra-wrap -->
+                        </div><!-- end collapsible section -->
+                        ` : ''}
                     `;
                     
                     container.appendChild(card);
@@ -6387,6 +6788,12 @@ getOldestTransactionDate(item) {
                         }
                     });
                     canvas._renderPending = false;
+                    // Force resize in case canvas dimensions weren't ready at render time
+                    setTimeout(() => {
+                        if (this.cardChartInstances[chartId]) {
+                            this.cardChartInstances[chartId].resize();
+                        }
+                    }, 100);
 
                 } catch (error) {
                     canvas._renderPending = false;
@@ -7293,6 +7700,12 @@ getOldestTransactionDate(item) {
                 if (this.elements.modalAlphaVantageKey) this.elements.modalAlphaVantageKey.value = this.config.alphaVantageKey;
                 if (this.elements.modalFmpKey) this.elements.modalFmpKey.value = this.config.fmpApiKey;
                 if (this.elements.modalRefreshInterval) this.elements.modalRefreshInterval.value = this.config.refreshIntervalMs / 1000;
+                if (this.elements.modalRetirementGoal) {
+                    const _gv = parseFloat(this.config.retirementGoal) || 0;
+                    this.elements.modalRetirementGoal.value = _gv > 0 ? _gv.toLocaleString('en-US') : '';
+                }
+                if (this.elements.modalYearsToRetirement) this.elements.modalYearsToRetirement.value = this.config.yearsToRetirement || 25;
+                if (this.elements.modalGrowthRate) this.elements.modalGrowthRate.value = this.config.coastGrowthRate || 9;
             }
             closeSettingsModal() { if (this.elements.settingsModal) this.elements.settingsModal.style.display = 'none'; }
             
@@ -7326,6 +7739,15 @@ getOldestTransactionDate(item) {
 
                 // Update local config immediately so app uses new keys even if Firestore fails
                 this.config.finnhubApiKey = finnhubKey;
+                const _rGoal = this.elements.modalRetirementGoal ? parseFloat(this.elements.modalRetirementGoal.value.replace(/,/g,''))||0 : 0;
+                const _rYrs  = this.elements.modalYearsToRetirement ? parseFloat(this.elements.modalYearsToRetirement.value)||25 : 25;
+                this.config.retirementGoal = _rGoal;
+                this.config.yearsToRetirement = _rYrs;
+                const _rRate = this.elements.modalGrowthRate ? parseFloat(this.elements.modalGrowthRate.value)||9 : 9;
+                this.config.coastGrowthRate = _rRate;
+                localStorage.setItem('coastFireGoal', _rGoal);
+                localStorage.setItem('coastFireYears', _rYrs);
+                localStorage.setItem('coastFireRate', _rRate);
                 this.config.alphaVantageKey = alphaVantageKey;
                 this.config.fmpApiKey = fmpKey;
                 this.config.marketstackApiKey = marketstackKey;
@@ -8146,7 +8568,7 @@ await this.saveData();
                 try {
                     await this.saveData();
                     this.closePriceAlertModal();
-                    this.showSuccess(`🔔 Price alert for ${symbol} saved!`);
+                    setTimeout(() => this.showSuccess(`🔔 Price alert for ${symbol} saved!`), 150);
                 } catch (e) {
                     console.error('Failed to save alert:', e);
                     // Roll back the push if save failed
@@ -8719,8 +9141,41 @@ await this.saveData();
     const month = document.getElementById('summary-month');
     try {
       const plToday = tracker.totalPLToday || tracker.total_pl_today || (tracker.getTotalPLToday && tracker.getTotalPLToday());
-      const pct1w = tracker.weekPercent || (tracker.getWeekPercent && tracker.getWeekPercent && tracker.getWeekPercent());
-      const pct1m = tracker.monthPercent || (tracker.getMonthPercent && tracker.getMonthPercent && tracker.getMonthPercent());
+      // Compute 1W and 1M from portfolioHistory since weekPercent/monthPercent are never set on tracker
+      let pct1w, pct1m;
+      try {
+        const hist = Array.isArray(tracker.portfolioHistory) ? tracker.portfolioHistory : [];
+        const now = Date.now();
+        const msDay = 86400 * 1000;
+        const currentVal = tracker.totalPortfolioValue || tracker.combinedTotal ||
+          (hist.length ? Number(hist[hist.length-1].value || hist[hist.length-1].totalValue || 0) : 0);
+        if (hist.length >= 2 && currentVal > 0) {
+          const cutoff1w = now - 7 * msDay;
+          const cutoff1m = now - 30 * msDay;
+          const sorted = hist.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+          const findBase = (cutoff) => {
+            let best = null;
+            for (const e of sorted) {
+              const t = new Date(e.date).getTime();
+              if (t <= cutoff) best = e;
+            }
+            return best;
+          };
+          const base1w = findBase(cutoff1w);
+          const base1m = findBase(cutoff1m);
+          if (base1w) {
+            const bv = Number(base1w.value || base1w.totalValue || 0);
+            if (bv > 0) pct1w = ((currentVal - bv) / bv) * 100;
+          }
+          if (base1m) {
+            const bv = Number(base1m.value || base1m.totalValue || 0);
+            if (bv > 0) pct1m = ((currentVal - bv) / bv) * 100;
+          }
+        }
+      } catch(e2) {}
+      // fallback to tracker properties if history didn't yield a result
+      if (pct1w === undefined) pct1w = tracker.weekPercent || (tracker.getWeekPercent && tracker.getWeekPercent());
+      if (pct1m === undefined) pct1m = tracker.monthPercent || (tracker.getMonthPercent && tracker.getMonthPercent());
       function fmtPillCurrency(v){
   const n = Number(v);
   if(!Number.isFinite(n)) return '$0.00';
@@ -9793,8 +10248,7 @@ body.dark-mode #sticky-mini-bar { background: rgba(34,37,46,0.95); }
 .mini-bar-value { font-size:0.9rem; font-weight:800; }
 
 /* ── Sparkline on cards ── */
-.sparkline-wrap { margin: 6px 0 4px; height: 36px; position:relative; }
-.sparkline-wrap canvas { width:100% !important; height:36px !important; }
+.sparkline-wrap { display: none !important; }
 
 /* ── Empty state ── */
 .empty-state-fancy {
@@ -10581,6 +11035,13 @@ const PANELS = {
   journal:  'stJournalPanel',
   divcal:   'stDivCalPanel',
   perfstats:'stPerfStatsPanel',
+  var:      'stVarPanel',
+  divwaterfall:'stDivWaterfallPanel',
+  anomaly:  'stAnomalyPanel',
+  askai:    'stAskAiPanel',
+  overlap:  'stOverlapPanel',
+  exposure: 'stExposurePanel',
+  aidoctor: 'stAidoctorPanel',
   schedd:   'stSchedDPanel',
 };
 
@@ -13543,6 +14004,24 @@ window.renderPerfStats = function renderPerfStats() {
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:8px;">
       ${card('CAGR', cagr!=null?(cagr>=0?'+':'')+cagr.toFixed(1)+'%':'< 1yr data', cagr!=null?(cagr>=0?'var(--color-positive,#27ae60)':'var(--color-negative,#e74c3c)'):'')}
+      ${card('Sharpe Ratio', (() => {
+        if (dailyChanges.length < 30) return '< 30 days data';
+        const rfDaily = 0.045 / 252; // ~4.5% annual risk-free rate
+        const pctReturns = dailyChanges.map(d => d.pct / 100);
+        const mean = pctReturns.reduce((s,r)=>s+r,0) / pctReturns.length;
+        const std  = Math.sqrt(pctReturns.reduce((s,r)=>s+Math.pow(r-mean,2),0) / pctReturns.length);
+        const sharpe = std > 0 ? ((mean - rfDaily) / std) * Math.sqrt(252) : 0;
+        const rating = sharpe >= 2 ? '🟢 Excellent' : sharpe >= 1 ? '🟡 Good' : sharpe >= 0 ? '🟠 Fair' : '🔴 Poor';
+        return sharpe.toFixed(2) + ' · ' + rating;
+      })(), (() => {
+        if (dailyChanges.length < 30) return '';
+        const rfDaily = 0.045 / 252;
+        const pctReturns = dailyChanges.map(d => d.pct / 100);
+        const mean = pctReturns.reduce((s,r)=>s+r,0) / pctReturns.length;
+        const std  = Math.sqrt(pctReturns.reduce((s,r)=>s+Math.pow(r-mean,2),0) / pctReturns.length);
+        const sharpe = std > 0 ? ((mean - rfDaily) / std) * Math.sqrt(252) : 0;
+        return sharpe >= 1 ? 'var(--color-positive,#27ae60)' : sharpe >= 0 ? '#f39c12' : 'var(--color-negative,#e74c3c)';
+      })())}
       ${card('Max Drawdown', '-'+(maxDD*100).toFixed(1)+'%', 'var(--color-negative,#e74c3c)')}
       ${card('Annualized Volatility', volatility.toFixed(1)+'%')}
       ${card('Total History Points', hist.length+' days')}
@@ -13554,7 +14033,758 @@ window.renderPerfStats = function renderPerfStats() {
       ${avgHoldDays ? card('Avg Hold Time', avgHoldDays+'d') : ''}
       ${card('Drawdown Period', hist[ddStart]?.date?.slice(0,7)+' → '+hist[ddEnd]?.date?.slice(0,7))}
     </div>
-    <p style="font-size:0.68rem;color:var(--text-secondary);margin-top:8px;">Based on ${hist.length} daily snapshots. CAGR and drawdown use portfolio history. Volatility annualized from daily returns.</p>`;
+    <p style="font-size:0.68rem;color:var(--text-secondary);margin-top:8px;">Based on ${hist.length} daily snapshots. CAGR and drawdown use portfolio history. Volatility annualized from daily returns. Sharpe uses ~4.5% risk-free rate.</p>
+
+    ${(() => {
+      // ── Correlation Matrix ──
+      const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+      // Only include items with enough price history
+      const withHistory = allItems.filter(item => {
+        const ph = item.priceHistory || [];
+        return ph.length >= 10 && item.symbol;
+      }).slice(0, 8); // cap at 8 for readability
+
+      if (withHistory.length < 2) {
+        return `<div style="margin-top:16px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📊 Correlation Matrix</div>
+          <p style="font-size:0.78rem;color:var(--text-secondary);">Need at least 2 holdings with price history. Prices accumulate automatically on each refresh.</p>
+        </div>`;
+      }
+
+      // Build return series per symbol aligned by date
+      const seriesMap = {};
+      withHistory.forEach(item => {
+        const ph = (item.priceHistory||[]).slice(-60).sort((a,b)=>new Date(a.date)-new Date(b.date));
+        const returns = [];
+        for (let i=1;i<ph.length;i++) {
+          const r = (ph[i].price - ph[i-1].price) / ph[i-1].price;
+          returns.push(isFinite(r) ? r : 0);
+        }
+        seriesMap[item.symbol] = returns;
+      });
+
+      const symbols = Object.keys(seriesMap);
+      const minLen = Math.min(...symbols.map(s=>seriesMap[s].length));
+
+      if (minLen < 5) {
+        return `<div style="margin-top:16px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">📊 Correlation Matrix</div>
+          <p style="font-size:0.78rem;color:var(--text-secondary);">Accumulating price history — check back after a few more days of refreshes.</p>
+        </div>`;
+      }
+
+      // Pearson correlation
+      const corr = (a, b) => {
+        const n = Math.min(a.length, b.length);
+        const ax = a.slice(-n), bx = b.slice(-n);
+        const ma = ax.reduce((s,v)=>s+v,0)/n, mb = bx.reduce((s,v)=>s+v,0)/n;
+        const num = ax.reduce((s,v,i)=>s+(v-ma)*(bx[i]-mb),0);
+        const da  = Math.sqrt(ax.reduce((s,v)=>s+Math.pow(v-ma,2),0));
+        const db  = Math.sqrt(bx.reduce((s,v)=>s+Math.pow(v-mb,2),0));
+        return (da*db) === 0 ? 0 : num/(da*db);
+      };
+
+      const corrColor = (r) => {
+        if (r >= 0.8)  return '#e74c3c';  // strong positive — red (high risk concentration)
+        if (r >= 0.5)  return '#f39c12';  // moderate positive — amber
+        if (r >= 0.2)  return '#3498db';  // weak positive — blue
+        if (r >= -0.2) return 'var(--text-secondary)'; // near zero — neutral
+        if (r >= -0.5) return '#9b59b6';  // weak negative — purple (diversifying)
+        return '#27ae60';                  // strong negative — green (great diversifier)
+      };
+
+      let headerRow = `<tr><th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);background:var(--bg-tertiary);">Symbol</th>`;
+      symbols.forEach(s => {
+        headerRow += `<th style="padding:6px 8px;font-size:0.68rem;color:var(--text-secondary);background:var(--bg-tertiary);text-align:center;">${s}</th>`;
+      });
+      headerRow += '</tr>';
+
+      let bodyRows = '';
+      symbols.forEach(s1 => {
+        bodyRows += `<tr><td style="padding:6px 8px;font-size:0.72rem;font-weight:700;color:var(--text-primary);background:var(--bg-tertiary);">${s1}</td>`;
+        symbols.forEach(s2 => {
+          const r = s1 === s2 ? 1 : corr(seriesMap[s1], seriesMap[s2]);
+          const bg = s1 === s2 ? 'var(--bg-tertiary)' : 'var(--bg-secondary)';
+          bodyRows += `<td style="padding:6px 8px;text-align:center;font-size:0.75rem;font-weight:700;
+            color:${corrColor(r)};background:${bg};">${r.toFixed(2)}</td>`;
+        });
+        bodyRows += '</tr>';
+      });
+
+      return `
+        <div style="margin-top:16px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+            📊 Correlation Matrix <span style="font-weight:400;font-size:0.68rem;">(last 60 days of daily returns)</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="border-collapse:collapse;width:100%;border:1px solid var(--border-color);border-radius:9px;overflow:hidden;">
+              ${headerRow}${bodyRows}
+            </table>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:0.68rem;color:var(--text-secondary);">
+            <span><span style="color:#e74c3c;font-weight:700;">■</span> ≥0.8 High correlation (risk)</span>
+            <span><span style="color:#f39c12;font-weight:700;">■</span> 0.5–0.8 Moderate</span>
+            <span><span style="color:#3498db;font-weight:700;">■</span> 0.2–0.5 Low</span>
+            <span><span style="color:#9b59b6;font-weight:700;">■</span> Negative (diversifying)</span>
+            <span><span style="color:#27ae60;font-weight:700;">■</span> Strongly negative (best hedge)</span>
+          </div>
+        </div>`;
+    })()}
+
+    ${(() => {
+      // ── Drawdown Stress Test ──
+      const allItemsST = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+      const totalPortVal = allItemsST.reduce((s, item) => {
+        const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy')));
+        const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+        let shares = buys.reduce((a,b)=>a+b.shares,0) - sells.reduce((a,b)=>a+b.shares,0);
+        return s + Math.max(0, shares) * (item.price||0);
+      }, 0);
+      if (totalPortVal <= 0) return '';
+      const fc = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
+      const scenarios = [
+        {label:'2022 Bear Market',      drop:20, color:'#f39c12', icon:'📉'},
+        {label:'2020 COVID Crash',      drop:34, color:'#e67e22', icon:'🦠'},
+        {label:'2008 Financial Crisis', drop:57, color:'#e74c3c', icon:'🏦'},
+        {label:'Dot-Com Bust (2000)',   drop:49, color:'#c0392b', icon:'💻'},
+      ];
+      const rows = scenarios.map(s => {
+        const loss = totalPortVal * s.drop / 100;
+        const remain = totalPortVal - loss;
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <span style="font-size:0.75rem;font-weight:700;">${s.icon} ${s.label} (-${s.drop}%)</span>
+            <span style="font-size:0.75rem;color:${s.color};font-weight:800;">-${fc(loss)}</span>
+          </div>
+          <div style="background:var(--bg-tertiary);border-radius:4px;height:10px;overflow:hidden;margin-bottom:2px;">
+            <div style="width:${s.drop}%;height:100%;background:${s.color};border-radius:4px;"></div>
+          </div>
+          <div style="font-size:0.68rem;color:var(--text-secondary);">Drops to <strong style="color:var(--text-primary);">${fc(remain)}</strong></div>
+        </div>`;
+      }).join('');
+      return `<div style="margin-top:16px;padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">
+          🧨 Drawdown Stress Test <span style="font-weight:400;font-size:0.68rem;">— based on ${fc(totalPortVal)} current value</span>
+        </div>${rows}
+        <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:8px;border-top:1px solid var(--border-color);padding-top:8px;">Historical market drawdowns applied to current portfolio value. For illustration only.</p>
+      </div>`;
+    })()}
+    ${(() => {
+      // ── Tax-Loss Harvesting Alert ──
+      const allItemsTL = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+      const opportunities = [];
+      allItemsTL.forEach(item => {
+        if (!item.price || !item.transactions) return;
+        const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy').sort((a,b)=>new Date(a.date)-new Date(b.date))));
+        const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+        sells.forEach(sell => { let need=sell.shares; for(const lot of buys){if(need<=0)break;const u=Math.min(need,lot.shares);lot.shares-=u;need-=u;} });
+        buys.forEach((lot,idx) => {
+          if (lot.shares <= 0) return;
+          const unrealLoss = lot.shares*item.price - lot.shares*lot.price;
+          if (unrealLoss < -100) {
+            const _ps = (s) => { s=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(s))return new Date(s+'T12:00:00'); if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){const[mo,da,yr]=s.split('/');return new Date(parseInt(yr),parseInt(mo)-1,parseInt(da));} const d=new Date(s);return isNaN(d)?null:d; };
+            const _ld = _ps(lot.date);
+            const holdDays = _ld ? Math.round((Date.now()-_ld)/86400000) : 0;
+            const lotDateStr = _ld ? _ld.toLocaleDateString() : 'Unknown';
+            opportunities.push({symbol:item.symbol,lot:idx+1,shares:lot.shares,costBasis:lot.price,currentPrice:item.price,unrealLoss,holdDays,isLongTerm:holdDays>=366,lotDateStr});
+          }
+        });
+      });
+      const fc = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n);
+      if (opportunities.length === 0) return `<div style="margin-top:16px;padding:12px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🌿 Tax-Loss Harvesting</div>
+        <p style="font-size:0.78rem;color:var(--color-positive,#27ae60);">✅ No opportunities — all lots are at a gain or loss under $100.</p></div>`;
+      const total = opportunities.reduce((s,o)=>s+Math.abs(o.unrealLoss),0);
+      const rows = opportunities.sort((a,b)=>a.unrealLoss-b.unrealLoss).slice(0,8).map(o=>`<tr>
+        <td style="padding:5px 8px;font-weight:700;">${o.symbol}</td>
+        <td style="padding:5px 8px;color:var(--text-secondary);">Lot #${o.lot} · ${o.lotDateStr}</td>
+        <td style="padding:5px 8px;text-align:right;">${o.shares.toFixed(3)}</td>
+        <td style="padding:5px 8px;text-align:right;">${fc(o.costBasis)} → ${fc(o.currentPrice)}</td>
+        <td style="padding:5px 8px;text-align:right;color:var(--color-negative,#e74c3c);font-weight:700;">${fc(o.unrealLoss)}</td>
+        <td style="padding:5px 8px;text-align:center;"><span style="padding:2px 7px;border-radius:999px;font-size:0.65rem;font-weight:700;background:${o.isLongTerm?'rgba(52,152,219,0.12)':'rgba(231,76,60,0.10)'};color:${o.isLongTerm?'#3498db':'#e74c3c'};">${o.isLongTerm?'Long':'Short'}</span></td>
+      </tr>`).join('');
+      return `<div style="margin-top:16px;padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🌿 Tax-Loss Harvesting Opportunities</div>
+          <div style="font-size:0.8rem;font-weight:800;color:var(--color-positive,#27ae60);">Up to ${fc(total)} harvestable</div>
+        </div>
+        <div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:0.75rem;">
+          <thead><tr style="border-bottom:1px solid var(--border-color);">
+            <th style="padding:5px 8px;text-align:left;color:var(--text-secondary);font-weight:600;">Symbol</th>
+            <th style="padding:5px 8px;text-align:left;color:var(--text-secondary);font-weight:600;">Lot / Date</th>
+            <th style="padding:5px 8px;text-align:right;color:var(--text-secondary);font-weight:600;">Shares</th>
+            <th style="padding:5px 8px;text-align:right;color:var(--text-secondary);font-weight:600;">Cost → Current</th>
+            <th style="padding:5px 8px;text-align:right;color:var(--text-secondary);font-weight:600;">Unrealized Loss</th>
+            <th style="padding:5px 8px;text-align:center;color:var(--text-secondary);font-weight:600;">Term</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+        <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:10px;padding-top:8px;border-top:1px solid var(--border-color);">⚠️ Selling these lots offsets capital gains. Avoid re-buying same ticker within 30 days (wash-sale rule). Consult a tax advisor.</p>
+      </div>`;
+    })()}
+  `;
+};
+
+// ══════════════════════════════════════════════
+//  FEATURE: VALUE AT RISK (VaR) + AI EXPLANATION — Perf Stats panel addon
+// ══════════════════════════════════════════════
+window.renderVaR = function() {
+  const el = document.getElementById('stVarContent');
+  if (!el) return;
+  const tracker = window.stockTracker;
+  if (!tracker) return;
+
+  const hist = tracker.portfolioHistory || [];
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+  const currentVal = allItems.reduce((s, item) => {
+    const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy')));
+    const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+    let sh = buys.reduce((a,b)=>a+b.shares,0) - sells.reduce((a,b)=>a+b.shares,0);
+    return s + Math.max(0,sh) * (item.price||0);
+  }, 0);
+
+  const fc = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n||0);
+  const fc2 = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n||0);
+
+  // ── Build daily returns from portfolioHistory ──
+  const vals = hist.map(h=>Number(h.value||h.totalValue||0)).filter(v=>v>0);
+  if (vals.length < 10) {
+    el.innerHTML = `<p style="color:var(--text-secondary);padding:12px;text-align:center;font-size:0.82rem;">
+      ⏳ Need at least 10 days of portfolio history for VaR. Currently have ${vals.length} day(s).
+      Hit 🔄 Live Update daily to build history.</p>`;
+    return;
+  }
+
+  const returns = [];
+  for (let i=1; i<vals.length; i++) {
+    if (vals[i-1] > 0) returns.push((vals[i]-vals[i-1])/vals[i-1]);
+  }
+
+  const n = returns.length;
+  const sorted = returns.slice().sort((a,b)=>a-b);
+
+  // Parametric VaR (normal distribution assumption)
+  const mean = returns.reduce((s,r)=>s+r,0)/n;
+  const variance = returns.reduce((s,r)=>s+Math.pow(r-mean,2),0)/n;
+  const stdDev = Math.sqrt(variance);
+
+  // z-scores for confidence levels
+  const z90=1.282, z95=1.645, z99=2.326;
+  const pVaR90 = (mean - z90*stdDev) * currentVal;
+  const pVaR95 = (mean - z95*stdDev) * currentVal;
+  const pVaR99 = (mean - z99*stdDev) * currentVal;
+
+  // Historical VaR (empirical percentiles)
+  const idx90 = Math.floor(n * 0.10);
+  const idx95 = Math.floor(n * 0.05);
+  const idx99 = Math.floor(n * 0.01);
+  const hVaR90 = (sorted[Math.max(0,idx90)]||sorted[0]) * currentVal;
+  const hVaR95 = (sorted[Math.max(0,idx95)]||sorted[0]) * currentVal;
+  const hVaR99 = (sorted[Math.max(0,idx99)]||sorted[0]) * currentVal;
+
+  // Expected Shortfall (CVaR) at 95% — avg of worst 5%
+  const worstSlice = sorted.slice(0, Math.max(1,idx95));
+  const cvar95 = worstSlice.reduce((s,r)=>s+r,0)/worstSlice.length * currentVal;
+
+  // Best/worst actual days
+  const bestDay  = Math.max(...returns) * currentVal;
+  const worstDay = Math.min(...returns) * currentVal;
+  const annualVol = stdDev * Math.sqrt(252) * 100;
+
+  // Color helper
+  const lossColor = v => v < -20000 ? '#e74c3c' : v < -10000 ? '#f39c12' : '#3498db';
+
+  // Histogram of daily returns
+  const buckets = 12;
+  const minR = sorted[0], maxR = sorted[sorted.length-1];
+  const bucketW = (maxR - minR) / buckets || 0.001;
+  const hist_counts = Array(buckets).fill(0);
+  returns.forEach(r => {
+    const b = Math.min(buckets-1, Math.floor((r - minR) / bucketW));
+    hist_counts[b]++;
+  });
+  const maxCount = Math.max(...hist_counts, 1);
+  const histBars = hist_counts.map((c, i) => {
+    const r_mid = minR + (i+0.5)*bucketW;
+    const h = Math.round((c/maxCount)*50);
+    const col = r_mid < -0.02 ? '#e74c3c' : r_mid < 0 ? '#f39c12' : '#27ae60';
+    const pct = (r_mid*100).toFixed(1);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:1px;" title="${pct}%: ${c} days">
+      <div style="font-size:0.5rem;color:var(--text-secondary);">${c>0?c:''}</div>
+      <div style="height:${h||2}px;width:100%;background:${col};border-radius:2px 2px 0 0;opacity:0.85;"></div>
+      <div style="font-size:0.5rem;color:var(--text-secondary);transform:rotate(-35deg);transform-origin:top;margin-top:2px;">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-top:4px;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);">📊 Value at Risk (VaR) · 24-Hour Stress Test</div>
+          <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;">Based on ${n} days of returns · Portfolio value: ${fc(currentVal)} · Annualized vol: ${annualVol.toFixed(1)}%</div>
+        </div>
+        <button id="varAiBtn" onclick="window.runVarAI()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">✨ AI Explain</button>
+      </div>
+
+      <!-- VaR Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:14px;">
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">90% Confidence VaR</div>
+          <div style="font-size:1.0rem;font-weight:800;color:${lossColor(pVaR95)};">${fc2(pVaR95)}</div>
+          <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">10% chance of losing more than this in 24h</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;border-left:3px solid #f39c12;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">95% Confidence VaR ⭐</div>
+          <div style="font-size:1.0rem;font-weight:800;color:${lossColor(pVaR95)};">${fc2(pVaR95)}</div>
+          <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">5% chance of losing more than this in 24h</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">99% Confidence VaR</div>
+          <div style="font-size:1.0rem;font-weight:800;color:${lossColor(pVaR99)};">${fc2(pVaR99)}</div>
+          <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">1% chance of losing more than this in 24h</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid rgba(231,76,60,0.4);border-radius:9px;border-left:3px solid #e74c3c;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Expected Shortfall (CVaR 95%)</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#e74c3c;">${fc2(cvar95)}</div>
+          <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Avg loss on worst 5% of days</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Best Day (Actual)</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#27ae60;">+${fc2(bestDay)}</div>
+        </div>
+        <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+          <div style="font-size:0.62rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Worst Day (Actual)</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#e74c3c;">${fc2(worstDay)}</div>
+        </div>
+      </div>
+
+      <!-- Historical vs Parametric comparison -->
+      <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;margin-bottom:14px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📐 Historical vs Parametric VaR</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+            <thead><tr style="border-bottom:1px solid var(--border-color);">
+              <th style="padding:5px 8px;text-align:left;color:var(--text-secondary);font-weight:600;">Confidence</th>
+              <th style="padding:5px 8px;text-align:right;color:var(--text-secondary);font-weight:600;">Parametric (Normal)</th>
+              <th style="padding:5px 8px;text-align:right;color:var(--text-secondary);font-weight:600;">Historical (Empirical)</th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-bottom:0.5px solid var(--border-color);">
+                <td style="padding:5px 8px;font-weight:600;">90%</td>
+                <td style="padding:5px 8px;text-align:right;color:#f39c12;">${fc2(pVaR90)}</td>
+                <td style="padding:5px 8px;text-align:right;color:#f39c12;">${fc2(hVaR90)}</td>
+              </tr>
+              <tr style="border-bottom:0.5px solid var(--border-color);">
+                <td style="padding:5px 8px;font-weight:600;">95% ⭐</td>
+                <td style="padding:5px 8px;text-align:right;color:#e67e22;">${fc2(pVaR95)}</td>
+                <td style="padding:5px 8px;text-align:right;color:#e67e22;">${fc2(hVaR95)}</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 8px;font-weight:600;">99%</td>
+                <td style="padding:5px 8px;text-align:right;color:#e74c3c;">${fc2(pVaR99)}</td>
+                <td style="padding:5px 8px;text-align:right;color:#e74c3c;">${fc2(hVaR99)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.62rem;color:var(--text-secondary);margin-top:6px;">Parametric assumes normal returns. Historical uses actual percentiles. If they differ significantly, your returns have fat tails (extreme events more likely than normal).</p>
+      </div>
+
+      <!-- Return Distribution Histogram -->
+      <div style="padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;margin-bottom:14px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">📊 Daily Return Distribution (${n} days)</div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:70px;padding-bottom:18px;">${histBars}</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:var(--text-secondary);margin-top:4px;">
+          <span>🔴 Loss days</span><span>🟡 Near zero</span><span>🟢 Gain days</span>
+        </div>
+      </div>
+
+      <!-- AI Result placeholder -->
+      <div id="varAiResult" style="display:none;"></div>
+
+      <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);">
+        ⚠️ VaR is a statistical estimate, not a guarantee. It assumes future returns resemble past returns. Black swan events exceed VaR by definition.
+        For educational use only — not financial advice.
+      </p>
+    </div>`;
+};
+
+// ── AI Explanation for VaR ──────────────────────────────────────────────────
+window.runVarAI = async function() {
+  const tracker = window.stockTracker;
+  if (!tracker) return;
+  const btn = document.getElementById('varAiBtn');
+  const result = document.getElementById('varAiResult');
+  if (!btn || !result) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing…';
+  result.style.display = 'block';
+  result.innerHTML = `<div style="padding:14px;background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));border:1px solid rgba(102,126,234,0.3);border-radius:10px;margin-bottom:8px;">
+    <div style="font-size:0.72rem;color:rgba(102,126,234,0.9);font-weight:700;margin-bottom:6px;">✨ AI Analysis Loading…</div>
+    <div style="font-size:0.8rem;color:var(--text-secondary);">Crunching your portfolio data…</div>
+  </div>`;
+
+  try {
+    const hist = tracker.portfolioHistory || [];
+    const vals = hist.map(h=>Number(h.value||h.totalValue||0)).filter(v=>v>0);
+    const returns = [];
+    for (let i=1;i<vals.length;i++) if(vals[i-1]>0) returns.push((vals[i]-vals[i-1])/vals[i-1]);
+
+    const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+    const currentVal = allItems.reduce((s,item)=>{
+      const sh = (item.transactions||[]).filter(t=>t.type==='buy').reduce((a,b)=>a+b.shares,0)
+               - (item.transactions||[]).filter(t=>t.type==='sell').reduce((a,b)=>a+b.shares,0);
+      return s + Math.max(0,sh)*(item.price||0);
+    },0);
+
+    const n = returns.length;
+    const sorted = returns.slice().sort((a,b)=>a-b);
+    const mean = returns.reduce((s,r)=>s+r,0)/n;
+    const stdDev = Math.sqrt(returns.reduce((s,r)=>s+Math.pow(r-mean,2),0)/n);
+    const annualVol = (stdDev*Math.sqrt(252)*100).toFixed(1);
+    const var95 = ((mean - 1.645*stdDev)*currentVal).toFixed(0);
+    const cvar = (sorted.slice(0,Math.max(1,Math.floor(n*0.05))).reduce((s,r)=>s+r,0)/Math.max(1,Math.floor(n*0.05))*currentVal).toFixed(0);
+    const bestRet = (Math.max(...returns)*100).toFixed(2);
+    const worstRet = (Math.min(...returns)*100).toFixed(2);
+    const skewness = (() => {
+      const m3 = returns.reduce((s,r)=>s+Math.pow(r-mean,3),0)/n;
+      return stdDev>0 ? (m3/Math.pow(stdDev,3)).toFixed(2) : '0';
+    })();
+
+    // Top holdings by value
+    const topHoldings = allItems.map(item => {
+      const sh = (item.transactions||[]).filter(t=>t.type==='buy').reduce((a,b)=>a+b.shares,0)
+               - (item.transactions||[]).filter(t=>t.type==='sell').reduce((a,b)=>a+b.shares,0);
+      const val = Math.max(0,sh)*(item.price||0);
+      return { symbol: item.symbol, val, pct: currentVal>0?(val/currentVal*100).toFixed(1):0 };
+    }).filter(h=>h.val>0).sort((a,b)=>b.val-a.val).slice(0,5);
+
+    const holdingsSummary = topHoldings.map(h=>`${h.symbol} (${h.pct}%)`).join(', ');
+
+    const prompt = `You are a concise financial risk analyst. Analyze this portfolio's Value at Risk data and explain it in plain English in 3-4 short paragraphs. Be specific with the numbers. End with 1-2 actionable risk management tips.
+
+Portfolio Data:
+- Current Value: $${Math.round(currentVal).toLocaleString()}
+- Days of History: ${n}
+- Annualized Volatility: ${annualVol}%
+- 95% VaR (24h): $${Math.abs(Math.round(var95)).toLocaleString()} potential loss
+- Expected Shortfall (CVaR 95%): $${Math.abs(Math.round(cvar)).toLocaleString()} avg worst-case
+- Best single day: +${bestRet}%
+- Worst single day: ${worstRet}%
+- Return skewness: ${skewness} (negative = left tail risk, positive = right skew)
+- Top holdings: ${holdingsSummary}
+
+Write in English. Be direct and educational. No bullet lists — flowing paragraphs only. Always complete your sentences and thoughts fully.`;
+
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+
+    if (!text) throw new Error('No response from AI');
+
+    result.innerHTML = `
+      <div style="padding:16px;background:linear-gradient(135deg,rgba(102,126,234,0.08),rgba(118,75,162,0.08));border:1px solid rgba(102,126,234,0.25);border-radius:10px;margin-bottom:8px;">
+        <div style="font-size:0.72rem;color:rgba(102,126,234,1);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">✨ AI Risk Analysis</div>
+        <div style="font-size:0.82rem;color:var(--text-primary);line-height:1.65;">${text.split('\n\n').join('</p><p style="margin:8px 0;">').split('\n').join(' ')}</div>
+        <div style="font-size:0.62rem;color:var(--text-secondary);margin-top:10px;padding-top:8px;border-top:1px solid rgba(102,126,234,0.2);">Generated by Claude AI · For educational purposes only · Not financial advice</div>
+      </div>`;
+    btn.textContent = '✨ AI Explain';
+    btn.disabled = false;
+  } catch(e) {
+    result.innerHTML = `<div style="padding:12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;font-size:0.78rem;color:#e74c3c;">
+      AI explanation unavailable: ${e.message}. This feature requires the app to be open on claude.ai or a Claude-powered interface.</div>`;
+    btn.textContent = '✨ AI Explain';
+    btn.disabled = false;
+  }
+};
+
+// ══════════════════════════════════════════════
+//  FEATURE: DIVIDEND WATERFALL — 12-Month Projected Income
+// ══════════════════════════════════════════════
+window.renderDividendWaterfall = function() {
+  const el = document.getElementById('stDivWaterfallContent');
+  if (!el) return;
+  const tracker = window.stockTracker;
+  if (!tracker) return;
+
+  const fc = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n||0);
+  const fc0 = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n||0);
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+  const now = new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Build 12-month forward projection per symbol
+  const symbolData = [];
+  const monthlyTotals = Array(12).fill(0);       // indexed 0=next month ... 11=12th month
+  const monthlyBreakdown = Array(12).fill(null).map(()=>[]); // array of {symbol, amt}
+
+  allItems.forEach(item => {
+    const divs = (item.dividends||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if (divs.length < 1) return;
+
+    // Get current shares
+    const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy')));
+    const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+    sells.forEach(sell => { let need=sell.shares; for(const lot of buys){if(need<=0)break;const u=Math.min(need,lot.shares);lot.shares-=u;need-=u;} });
+    const shares = Math.max(0, buys.reduce((s,b)=>s+b.shares,0));
+    if (shares <= 0) return;
+
+    // Detect payment frequency
+    const dates = divs.map(d=>new Date(d.date)).filter(d=>!isNaN(d));
+    const gaps = [];
+    for (let i=0;i<Math.min(dates.length-1,6);i++) gaps.push(Math.round((dates[i]-dates[i+1])/86400000));
+    const avgGap = gaps.length ? gaps.reduce((s,g)=>s+g,0)/gaps.length : 365;
+    let freqDays, freqLabel, paymentsPerYear;
+    if      (avgGap < 45)  { freqDays=30;  freqLabel='Monthly';    paymentsPerYear=12; }
+    else if (avgGap < 120) { freqDays=91;  freqLabel='Quarterly';  paymentsPerYear=4;  }
+    else if (avgGap < 240) { freqDays=182; freqLabel='Semi-Annual';paymentsPerYear=2;  }
+    else                   { freqDays=365; freqLabel='Annual';     paymentsPerYear=1;  }
+
+    // Avg dividend per payment (last 4 payments)
+    const recentDivs = divs.slice(0,4);
+    const avgAmtPerShare = recentDivs.reduce((s,d)=>s+(parseFloat(d.totalAmount)||0),0)
+                         / recentDivs.length / shares;
+    const paymentAmt = avgAmtPerShare * shares;
+
+    // Project next payment dates over 12 months
+    const lastDate = dates[0] || now;
+    const nextPayments = [];
+    let next = new Date(lastDate.getTime() + freqDays*86400000);
+    while (next <= now) next = new Date(next.getTime() + freqDays*86400000);
+
+    for (let i=0; i<paymentsPerYear*2 && nextPayments.length<24; i++) {
+      const payDate = new Date(lastDate.getTime() + (i+1)*freqDays*86400000);
+      if (payDate > now && payDate <= new Date(now.getTime() + 365*86400000)) {
+        nextPayments.push(payDate);
+      }
+    }
+
+    // Map payments into 12 forward months (0 = current month, 11 = 11 months from now)
+    nextPayments.forEach(payDate => {
+      const monthDiff = (payDate.getFullYear() - now.getFullYear())*12 + (payDate.getMonth() - now.getMonth());
+      if (monthDiff >= 0 && monthDiff < 12) {
+        monthlyTotals[monthDiff] += paymentAmt;
+        monthlyBreakdown[monthDiff].push({ symbol: item.symbol, amt: paymentAmt });
+      }
+    });
+
+    // Current yield for yield mode toggle
+    const costStats = tracker.calculateTransactionStats ? tracker.calculateTransactionStats(item.transactions, item.price) : {};
+    const costBasis = costStats.costOfRemainingShares || 0;
+    const currentValue = shares * (item.price||0);
+    const annualDiv = paymentAmt * paymentsPerYear;
+    const currentYield = currentValue > 0 ? (annualDiv/currentValue*100) : 0;
+    const yieldOnCost  = costBasis  > 0 ? (annualDiv/costBasis*100) : 0;
+
+    if (annualDiv > 0) {
+      symbolData.push({ symbol: item.symbol, annualDiv, paymentAmt, freqLabel, paymentsPerYear, shares, currentYield, yieldOnCost, currentValue, nextPayments });
+    }
+  });
+
+  symbolData.sort((a,b)=>b.annualDiv-a.annualDiv);
+  const totalAnnual = symbolData.reduce((s,d)=>s+d.annualDiv,0);
+  const totalMonthlyAvg = totalAnnual / 12;
+
+  // Build 12-month labels (current month forward)
+  const monthLabels = Array(12).fill(0).map((_,i) => {
+    const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    return months[d.getMonth()] + (i===0||d.getMonth()===0?' '+d.getFullYear():'');
+  });
+
+  const maxMonthly = Math.max(...monthlyTotals, 1);
+
+  // State for yield mode (stored in window for toggle)
+  if (window._divWaterfallYieldMode === undefined) window._divWaterfallYieldMode = 'current';
+
+  const buildContent = (yieldMode) => {
+    // Waterfall bars
+    const bars = monthlyTotals.map((amt, i) => {
+      const h = Math.max(4, Math.round((amt/maxMonthly)*110));
+      const isThisMonth = i===0;
+      const hasDiv = amt > 0;
+      const breakdown = monthlyBreakdown[i];
+      const tip = breakdown.map(b=>`${b.symbol}: ${fc(b.amt)}`).join(', ');
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0;" title="${monthLabels[i]}: ${fc(amt)}${tip?' — '+tip:''}">
+        <div style="font-size:0.58rem;color:${hasDiv?'var(--color-positive,#27ae60)':'var(--text-secondary)'};font-weight:700;text-align:center;word-break:break-all;">${hasDiv?fc0(amt):''}</div>
+        <div style="width:100%;height:${h}px;background:${isThisMonth?'#3498db':hasDiv?'var(--color-positive,#27ae60)':'var(--border-color)'};border-radius:4px 4px 0 0;opacity:${hasDiv?'0.85':'0.25'};transition:height 0.4s;position:relative;">
+          ${hasDiv&&breakdown.length>1?`<div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:0.5rem;color:rgba(255,255,255,0.7);">${breakdown.length}×</div>`:''}
+        </div>
+        <div style="font-size:0.6rem;color:${isThisMonth?'#3498db':'var(--text-secondary)'};font-weight:${isThisMonth?'700':'400'};text-align:center;writing-mode:vertical-lr;transform:rotate(180deg);max-height:28px;overflow:hidden;">${monthLabels[i]}</div>
+      </div>`;
+    }).join('');
+
+    // Symbol table
+    const symRows = symbolData.map(s => {
+      const yld = yieldMode === 'cost' ? s.yieldOnCost : s.currentYield;
+      const yldLabel = yieldMode === 'cost' ? 'YoC' : 'Yield';
+      const nextStr = s.nextPayments[0] ? s.nextPayments[0].toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+      return `<tr style="border-bottom:0.5px solid var(--border-color);font-size:0.78rem;">
+        <td style="padding:6px 8px;font-weight:700;">${s.symbol}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--color-positive,#27ae60);font-weight:700;">${fc(s.annualDiv)}</td>
+        <td style="padding:6px 8px;text-align:right;">${fc(s.annualDiv/12)}</td>
+        <td style="padding:6px 8px;text-align:right;">${yld.toFixed(2)}%<span style="font-size:0.6rem;color:var(--text-secondary);"> ${yldLabel}</span></td>
+        <td style="padding:6px 8px;text-align:center;font-size:0.7rem;background:rgba(52,152,219,0.08);border-radius:4px;">${s.freqLabel}</td>
+        <td style="padding:6px 8px;text-align:right;color:#f39c12;font-weight:600;">${nextStr}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <!-- Summary pills -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;flex:1;min-width:120px;">
+          <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Projected Annual</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--color-positive,#27ae60);">${fc(totalAnnual)}</div>
+        </div>
+        <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;flex:1;min-width:120px;">
+          <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Monthly Average</div>
+          <div style="font-size:1.1rem;font-weight:800;">${fc(totalMonthlyAvg)}</div>
+        </div>
+        <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;flex:1;min-width:120px;">
+          <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Paying Symbols</div>
+          <div style="font-size:1.1rem;font-weight:800;">${symbolData.length}</div>
+        </div>
+        <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;flex:1;min-width:120px;">
+          <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Daily Income</div>
+          <div style="font-size:1.1rem;font-weight:800;">${fc(totalAnnual/365)}</div>
+        </div>
+      </div>
+
+      <!-- Waterfall chart -->
+      <div style="padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-secondary);">💧 12-Month Dividend Waterfall</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="window._divWaterfallYieldMode='current';window.renderDividendWaterfall();" 
+              style="padding:4px 10px;font-size:0.7rem;font-weight:700;border-radius:6px;border:1px solid var(--border-color);cursor:pointer;background:${yieldMode==='current'?'var(--accent-primary,#3498db)':'var(--bg-tertiary)'};color:${yieldMode==='current'?'#fff':'var(--text-primary)'};">Current Yield</button>
+            <button onclick="window._divWaterfallYieldMode='cost';window.renderDividendWaterfall();" 
+              style="padding:4px 10px;font-size:0.7rem;font-weight:700;border-radius:6px;border:1px solid var(--border-color);cursor:pointer;background:${yieldMode==='cost'?'var(--accent-primary,#3498db)':'var(--bg-tertiary)'};color:${yieldMode==='cost'?'#fff':'var(--text-primary)'};">Yield on Cost</button>
+            <button id="waterfallAiBtn" onclick="window.runWaterfallAI()" 
+              style="padding:4px 10px;font-size:0.7rem;font-weight:700;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;">✨ AI</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:140px;padding-bottom:32px;">${bars}</div>
+        <div style="font-size:0.62rem;color:var(--text-secondary);margin-top:2px;">🔵 = current month &nbsp;|&nbsp; 🟢 = projected payments &nbsp;|&nbsp; Hover bars for breakdown</div>
+      </div>
+
+      <!-- Symbol table -->
+      ${symbolData.length ? `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-secondary);margin-bottom:8px;">📋 By Symbol — ${yieldMode==='cost'?'Yield on Cost':'Current Yield'}</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.68rem;color:var(--text-secondary);">
+              <th style="padding:5px 8px;text-align:left;">Symbol</th>
+              <th style="padding:5px 8px;text-align:right;">Annual</th>
+              <th style="padding:5px 8px;text-align:right;">Per Month</th>
+              <th style="padding:5px 8px;text-align:right;">Yield</th>
+              <th style="padding:5px 8px;text-align:center;">Frequency</th>
+              <th style="padding:5px 8px;text-align:right;">Next Est.</th>
+            </tr></thead>
+            <tbody>${symRows}</tbody>
+          </table>
+        </div>
+      </div>` : `<p style="color:var(--text-secondary);padding:16px;text-align:center;font-size:0.82rem;">No dividend history found. Use 💰 Dividend Tracker to fetch data, then come back here.</p>`}
+
+      <!-- AI Result -->
+      <div id="waterfallAiResult" style="display:none;"></div>
+
+      <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);">
+        Projected payments estimated from your dividend history and detected frequency. Actual amounts and dates may vary.
+      </p>`;
+  };
+
+  el.innerHTML = buildContent(window._divWaterfallYieldMode || 'current');
+};
+
+// ── AI Explanation for Dividend Waterfall ──────────────────────────────────
+window.runWaterfallAI = async function() {
+  const tracker = window.stockTracker;
+  if (!tracker) return;
+  const btn = document.getElementById('waterfallAiBtn');
+  const result = document.getElementById('waterfallAiResult');
+  if (!result) return;
+
+  if (btn) { btn.disabled=true; btn.textContent='⏳…'; }
+  result.style.display='block';
+  result.innerHTML=`<div style="padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));border:1px solid rgba(102,126,234,0.3);border-radius:10px;margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);">✨ Analyzing your dividend income stream…</div>`;
+
+  try {
+    const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+    const divItems = allItems.filter(i=>(i.dividends||[]).length>0).map(item => {
+      const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy')));
+      const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+      sells.forEach(sell=>{let need=sell.shares;for(const lot of buys){if(need<=0)break;const u=Math.min(need,lot.shares);lot.shares-=u;need-=u;}});
+      const shares = Math.max(0,buys.reduce((s,b)=>s+b.shares,0));
+      const divs = item.dividends.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+      const dates = divs.map(d=>new Date(d.date));
+      const gaps = [];
+      for(let i=0;i<Math.min(dates.length-1,4);i++) gaps.push(Math.round((dates[i]-dates[i+1])/86400000));
+      const avgGap = gaps.length?gaps.reduce((s,g)=>s+g,0)/gaps.length:365;
+      const freq = avgGap<45?'Monthly':avgGap<120?'Quarterly':avgGap<240?'Semi-Annual':'Annual';
+      const ppYear = avgGap<45?12:avgGap<120?4:avgGap<240?2:1;
+      const avgAmt = divs.slice(0,4).reduce((s,d)=>s+(parseFloat(d.totalAmount)||0),0)/Math.min(4,divs.length);
+      const annual = avgAmt * ppYear;
+      const currYield = shares*(item.price||0)>0?(annual/(shares*(item.price||0))*100).toFixed(2):0;
+      return `${item.symbol}: $${annual.toFixed(0)}/yr, ${freq}, yield ${currYield}%`;
+    });
+
+    const totalAnnual = divItems.length ? allItems.reduce((s,item)=>{
+      const buys = JSON.parse(JSON.stringify((item.transactions||[]).filter(t=>t.type==='buy')));
+      const sells = (item.transactions||[]).filter(t=>t.type==='sell');
+      sells.forEach(sell=>{let need=sell.shares;for(const lot of buys){if(need<=0)break;const u=Math.min(need,lot.shares);lot.shares-=u;need-=u;}});
+      const shares = Math.max(0,buys.reduce((s,sb)=>s+sb.shares,0));
+      const divs = (item.dividends||[]).slice(-4);
+      const avg = divs.reduce((ss,d)=>ss+(parseFloat(d.totalAmount)||0),0)/Math.max(1,divs.length);
+      const dates = (item.dividends||[]).map(d=>new Date(d.date));
+      const gaps2=[];
+      for(let i=0;i<Math.min(dates.length-1,4);i++) gaps2.push(Math.round((dates[i]-dates[i+1])/86400000));
+      const ag=gaps2.length?gaps2.reduce((ss,g)=>ss+g,0)/gaps2.length:365;
+      const ppy=ag<45?12:ag<120?4:ag<240?2:1;
+      return s+avg*ppy;
+    },0) : 0;
+
+    const prompt = `You are a concise dividend income analyst. Analyze this portfolio's dividend income stream in 2-3 short paragraphs. Comment on income consistency, diversification of payers, and whether the income stream is growing. End with one specific suggestion.
+
+Dividend Portfolio Summary:
+- Total Projected Annual Income: $${Math.round(totalAnnual).toLocaleString()}
+- Monthly Average: $${Math.round(totalAnnual/12).toLocaleString()}
+- Daily Passive Income: $${(totalAnnual/365).toFixed(2)}
+- Dividend payers: ${divItems.join('; ')}
+
+Write in English. Be specific and encouraging but honest. Always complete your sentences and thoughts fully.`;
+
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 8000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (!text) throw new Error('No response');
+
+    result.innerHTML=`<div style="padding:16px;background:linear-gradient(135deg,rgba(102,126,234,0.08),rgba(118,75,162,0.08));border:1px solid rgba(102,126,234,0.25);border-radius:10px;margin-bottom:8px;">
+      <div style="font-size:0.72rem;color:rgba(102,126,234,1);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">✨ AI Dividend Analysis</div>
+      <div style="font-size:0.82rem;color:var(--text-primary);line-height:1.65;">${text.split('\n\n').join('</p><p style="margin:8px 0;">').split('\n').join(' ')}</div>
+      <div style="font-size:0.62rem;color:var(--text-secondary);margin-top:10px;padding-top:8px;border-top:1px solid rgba(102,126,234,0.2);">Generated by Claude AI · Projections based on historical dividend data</div>
+    </div>`;
+    if(btn){btn.textContent='✨ AI';btn.disabled=false;}
+  } catch(e) {
+    result.innerHTML=`<div style="padding:12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;font-size:0.78rem;color:#e74c3c;">AI unavailable: ${e.message}</div>`;
+    if(btn){btn.textContent='✨ AI';btn.disabled=false;}
+  }
 };
 
 // ══════════════════════════════════════════════
@@ -14058,6 +15288,1522 @@ window.stToggleNextDividend = async function(id, symbol) {
 })();
 </script>
 
+<!-- ══════════════════════════════════════════════════════════════════
+     FEATURE: ANOMALY DETECTOR + ASK PORTFOLIO
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  OPTION 2: ANOMALY DETECTOR
+//  Detects statistically abnormal moves using Z-score vs expected beta return
+// ─────────────────────────────────────────────────────────────────────────────
+window.renderAnomaly = function() {
+  const el = document.getElementById('stAnomalyContent');
+  if (!el) return;
+  const tracker = window.stockTracker;
+  if (!tracker || (!tracker.stocks && !tracker.mutualFunds)) {
+    el.innerHTML = '<p style="padding:16px;color:var(--text-secondary);text-align:center;">⏳ Portfolio not loaded yet — please sign in and run a Live Update first.</p>';
+    return;
+  }
+
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+  const fc2 = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(n||0);
+  const pct = n => (n>=0?'+':'')+n.toFixed(2)+'%';
+
+  // ── 1. Build per-stock return series from priceHistory ──────────────────
+  const series = {};
+  allItems.forEach(item => {
+    const ph = (item.priceHistory||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+    if (ph.length < 5) return;
+    const returns = [];
+    for (let i=1;i<ph.length;i++) {
+      if (ph[i-1].price > 0) returns.push((ph[i].price - ph[i-1].price) / ph[i-1].price * 100);
+    }
+    if (returns.length < 4) return;
+    const mean = returns.reduce((s,r)=>s+r,0) / returns.length;
+    const std  = Math.sqrt(returns.reduce((s,r)=>s+Math.pow(r-mean,2),0) / returns.length);
+    series[item.symbol] = { returns, mean, std, item };
+  });
+
+  const symbols = Object.keys(series);
+
+  // ── 2. Compute beta vs portfolio (using portfolioHistory as "market") ───
+  const portHist = (tracker.portfolioHistory||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const portReturns = [];
+  for (let i=1;i<portHist.length;i++) {
+    const pv = Number(portHist[i-1].value||0);
+    if (pv>0) portReturns.push((Number(portHist[i].value||0)-pv)/pv*100);
+  }
+
+  const computeBeta = (stockReturns) => {
+    const n = Math.min(stockReturns.length, portReturns.length);
+    if (n < 5) return 1;
+    const sr = stockReturns.slice(-n), pr = portReturns.slice(-n);
+    const sm = sr.reduce((s,r)=>s+r,0)/n, pm = pr.reduce((s,r)=>s+r,0)/n;
+    const cov = sr.reduce((s,r,i)=>s+(r-sm)*(pr[i]-pm),0)/n;
+    const varP = pr.reduce((s,r)=>s+Math.pow(r-pm,2),0)/n;
+    return varP > 0 ? cov/varP : 1;
+  };
+
+  // ── 3. Score each stock: Z-score of today's move vs its own history ─────
+  const scored = symbols.map(sym => {
+    const { returns, mean, std, item } = series[sym];
+    const todayReturn = item.changePercent ?? item.percentChange ?? 0;
+    const z = std > 0 ? (todayReturn - mean) / std : 0;
+    const beta = computeBeta(returns);
+    const portToday = portReturns[portReturns.length-1] || 0;
+    const expectedMove = beta * portToday;
+    const deviation = todayReturn - expectedMove;
+    const deviationZ = std > 0 ? deviation / std : 0;
+    return { sym, item, todayReturn, mean, std, z, beta, expectedMove, deviation, deviationZ };
+  }).sort((a,b) => Math.abs(b.deviationZ) - Math.abs(a.deviationZ));
+
+  const anomalies = scored.filter(s => Math.abs(s.deviationZ) >= 1.5);
+  const normal    = scored.filter(s => Math.abs(s.deviationZ) < 1.5);
+
+  // ── 4. Render ────────────────────────────────────────────────────────────
+  const zColor = z => Math.abs(z)>=2.5?'#e74c3c':Math.abs(z)>=1.5?'#f39c12':'#27ae60';
+  const zLabel = z => Math.abs(z)>=2.5?'🔴 Extreme':Math.abs(z)>=2?'🟠 High':Math.abs(z)>=1.5?'🟡 Elevated':'🟢 Normal';
+
+  const anomalyCards = anomalies.map(s => `
+    <div style="padding:12px 14px;background:var(--bg-secondary);border:1px solid ${zColor(s.deviationZ)};border-left:4px solid ${zColor(s.deviationZ)};border-radius:9px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+        <div>
+          <span style="font-size:1rem;font-weight:800;">${s.sym}</span>
+          <span style="margin-left:8px;font-size:0.72rem;padding:2px 7px;border-radius:999px;background:${zColor(s.deviationZ)}22;color:${zColor(s.deviationZ)};font-weight:700;">${zLabel(s.deviationZ)}</span>
+        </div>
+        <span style="font-size:0.95rem;font-weight:800;color:${s.todayReturn>=0?'#27ae60':'#e74c3c'};">${pct(s.todayReturn)} today</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;font-size:0.72rem;">
+        <div><span style="color:var(--text-secondary);">Expected move:</span> <strong>${pct(s.expectedMove)}</strong></div>
+        <div><span style="color:var(--text-secondary);">Deviation:</span> <strong style="color:${zColor(s.deviationZ)};">${pct(s.deviation)}</strong></div>
+        <div><span style="color:var(--text-secondary);">Z-score:</span> <strong style="color:${zColor(s.deviationZ)};">${s.deviationZ.toFixed(2)}σ</strong></div>
+        <div><span style="color:var(--text-secondary);">Beta vs portfolio:</span> <strong>${s.beta.toFixed(2)}</strong></div>
+        <div><span style="color:var(--text-secondary);">Hist avg daily:</span> <strong>${pct(s.mean)}</strong></div>
+        <div><span style="color:var(--text-secondary);">Hist daily σ:</span> <strong>${s.std.toFixed(2)}%</strong></div>
+      </div>
+    </div>`).join('');
+
+  const normalRows = normal.map(s => `
+    <tr style="border-bottom:0.5px solid var(--border-color);font-size:0.76rem;">
+      <td style="padding:5px 8px;font-weight:700;">${s.sym}</td>
+      <td style="padding:5px 8px;text-align:right;color:${s.todayReturn>=0?'#27ae60':'#e74c3c'};">${pct(s.todayReturn)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--text-secondary);">${pct(s.expectedMove)}</td>
+      <td style="padding:5px 8px;text-align:right;">${s.deviationZ.toFixed(2)}σ</td>
+      <td style="padding:5px 8px;text-align:center;">${s.beta.toFixed(2)}</td>
+    </tr>`).join('');
+
+  const hasEnoughHistory = symbols.length > 0;
+
+  el.innerHTML = `
+    <!-- Header bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);">Last scan: ${new Date().toLocaleTimeString()}</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">Tracking ${symbols.length} symbols · ${anomalies.length} anomal${anomalies.length===1?'y':'ies'} detected</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="window.renderAnomaly()" style="padding:6px 12px;font-size:0.75rem;font-weight:700;border-radius:7px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;">🔄 Rescan</button>
+        ${anomalies.length>0?`<button onclick="window.runAnomalyAI()" id="anomalyAiBtn" style="padding:6px 14px;font-size:0.75rem;font-weight:700;border-radius:7px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;cursor:pointer;">✨ AI Explain</button>`:''}
+      </div>
+    </div>
+
+    <!-- How it works explainer (collapsed) -->
+    <details style="margin-bottom:14px;">
+      <summary style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);cursor:pointer;text-transform:uppercase;letter-spacing:0.4px;">ℹ️ How Anomaly Detection Works</summary>
+      <div style="margin-top:8px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;font-size:0.76rem;color:var(--text-secondary);line-height:1.7;">
+        <strong style="color:var(--text-primary);">Step 1 — Build a baseline:</strong> Uses your <code>priceHistory</code> to calculate each stock's historical average daily return and standard deviation (volatility).<br><br>
+        <strong style="color:var(--text-primary);">Step 2 — Compute Beta:</strong> Measures how much each stock typically moves relative to your overall portfolio. Beta &gt; 1 = amplified mover. Beta &lt; 1 = defensive.<br><br>
+        <strong style="color:var(--text-primary);">Step 3 — Expected move:</strong> Given today's portfolio return, calculates what each stock <em>should</em> have moved: <code>Expected = Beta × Portfolio Return Today</code>.<br><br>
+        <strong style="color:var(--text-primary);">Step 4 — Z-score deviation:</strong> <code>Z = (Actual − Expected) / Historical σ</code>. A Z-score ≥ 1.5σ means the move is statistically unusual — something stock-specific happened, not just market noise.<br><br>
+        🟡 1.5–2σ = Elevated &nbsp;|&nbsp; 🟠 2–2.5σ = High &nbsp;|&nbsp; 🔴 ≥2.5σ = Extreme
+      </div>
+    </details>
+
+    ${!hasEnoughHistory ? `<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:0.82rem;">
+      ⏳ Needs at least 5 days of price history per stock. Keep doing Live Updates daily — data accumulates automatically.
+    </div>` : ''}
+
+    <!-- AI Result -->
+    <div id="anomalyAiResult" style="display:none;margin-bottom:14px;"></div>
+
+    <!-- Anomalies -->
+    ${anomalies.length>0 ? `
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#e74c3c;margin-bottom:8px;">🚨 Anomalies Detected (${anomalies.length})</div>
+    ${anomalyCards}` : hasEnoughHistory ? `
+    <div style="padding:16px;background:rgba(39,174,96,0.08);border:1px solid rgba(39,174,96,0.3);border-radius:9px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:1.2rem;margin-bottom:4px;">✅</div>
+      <div style="font-size:0.85rem;font-weight:700;color:#27ae60;">All Clear — No Anomalies</div>
+      <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;">All holdings are moving within 1.5σ of their expected beta-adjusted return today.</div>
+    </div>` : ''}
+
+    <!-- Normal movers table -->
+    ${normal.length>0 ? `
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;">📊 Normal Movers</div>
+    <div style="overflow-x:auto;margin-bottom:14px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.68rem;color:var(--text-secondary);">
+          <th style="padding:5px 8px;text-align:left;">Symbol</th>
+          <th style="padding:5px 8px;text-align:right;">Today</th>
+          <th style="padding:5px 8px;text-align:right;">Expected</th>
+          <th style="padding:5px 8px;text-align:right;">Z-score</th>
+          <th style="padding:5px 8px;text-align:center;">Beta</th>
+        </tr></thead>
+        <tbody>${normalRows}</tbody>
+      </table>
+    </div>` : ''}
+
+    <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:4px;padding-top:8px;border-top:1px solid var(--border-color);">
+      Z-score measures deviation from expected beta-adjusted move. ≥1.5σ = statistically unusual.
+      Requires daily price history — builds automatically with each Live Update.
+      Not financial advice.
+    </p>`;
+};
+
+// ── AI Explanation for Anomaly ──────────────────────────────────────────────
+window.runAnomalyAI = async function() {
+  const btn = document.getElementById('anomalyAiBtn');
+  const result = document.getElementById('anomalyAiResult');
+  if (!result) return;
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Analyzing…'; }
+  result.style.display='block';
+  result.innerHTML=`<div style="padding:12px;background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));border:1px solid rgba(102,126,234,0.3);border-radius:9px;font-size:0.8rem;color:var(--text-secondary);">✨ AI is analyzing the anomalies…</div>`;
+
+  try {
+    const tracker = window.stockTracker;
+    const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+
+    const series = {};
+    allItems.forEach(item => {
+      const ph = (item.priceHistory||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+      if (ph.length < 5) return;
+      const returns = [];
+      for (let i=1;i<ph.length;i++) if(ph[i-1].price>0) returns.push((ph[i].price-ph[i-1].price)/ph[i-1].price*100);
+      if (returns.length < 4) return;
+      const mean = returns.reduce((s,r)=>s+r,0)/returns.length;
+      const std  = Math.sqrt(returns.reduce((s,r)=>s+Math.pow(r-mean,2),0)/returns.length);
+      series[item.symbol] = { returns, mean, std, item };
+    });
+
+    const portHist = (tracker.portfolioHistory||[]).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+    const portReturns = [];
+    for(let i=1;i<portHist.length;i++){const pv=Number(portHist[i-1].value||0);if(pv>0)portReturns.push((Number(portHist[i].value||0)-pv)/pv*100);}
+    const portToday = portReturns[portReturns.length-1]||0;
+
+    const scored = Object.keys(series).map(sym => {
+      const {returns,mean,std,item} = series[sym];
+      const todayReturn = item.changePercent??item.percentChange??0;
+      const n = Math.min(returns.length, portReturns.length);
+      let beta = 1;
+      if (n>=5) {
+        const sr=returns.slice(-n),pr=portReturns.slice(-n);
+        const sm=sr.reduce((s,r)=>s+r,0)/n,pm=pr.reduce((s,r)=>s+r,0)/n;
+        const cov=sr.reduce((s,r,i)=>s+(r-sm)*(pr[i]-pm),0)/n;
+        const varP=pr.reduce((s,r)=>s+Math.pow(r-pm,2),0)/n;
+        beta=varP>0?cov/varP:1;
+      }
+      const expectedMove=beta*portToday;
+      const deviation=todayReturn-expectedMove;
+      const deviationZ=std>0?deviation/std:0;
+      return {sym,todayReturn,mean,std,deviationZ,beta,expectedMove,deviation};
+    }).filter(s=>Math.abs(s.deviationZ)>=1.5).sort((a,b)=>Math.abs(b.deviationZ)-Math.abs(a.deviationZ));
+
+    if (scored.length===0) { result.style.display='none'; if(btn){btn.textContent='✨ AI Explain';btn.disabled=false;} return; }
+
+    const summaries = scored.map(s =>
+      `${s.sym}: moved ${s.todayReturn>=0?'+':''}${s.todayReturn.toFixed(2)}% today vs expected ${s.expectedMove>=0?'+':''}${s.expectedMove.toFixed(2)}% (${s.deviationZ.toFixed(1)}σ deviation, beta=${s.beta.toFixed(2)}, hist avg=${s.mean.toFixed(2)}%/day)`
+    ).join('\n');
+
+    const prompt = `You are a financial analyst AI. Analyze these statistically anomalous stock moves and explain in plain English what may be driving each one. Be specific — mention likely catalysts (earnings, sector rotation, macro events, company news). Write 2-3 sentences per anomaly, then a one-line portfolio impact summary at the end.
+
+Portfolio return today: ${portToday>=0?'+':''}${portToday.toFixed(2)}%
+Date: ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+
+Anomalies detected:
+${summaries}
+
+Be direct and educational. Always complete every stock's analysis fully. No bullet points — short paragraphs per stock.`;
+
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (!text) throw new Error('No response');
+
+    result.innerHTML=`<div style="padding:16px;background:linear-gradient(135deg,rgba(102,126,234,0.08),rgba(118,75,162,0.08));border:1px solid rgba(102,126,234,0.25);border-radius:10px;">
+      <div style="font-size:0.72rem;color:rgba(102,126,234,1);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">✨ AI Anomaly Analysis</div>
+      <div style="font-size:0.82rem;color:var(--text-primary);line-height:1.7;">${text.split('\n\n').join('</p><p style="margin:8px 0;">').split('\n').join('<br>')}</div>
+      <div style="font-size:0.62rem;color:var(--text-secondary);margin-top:10px;padding-top:8px;border-top:1px solid rgba(102,126,234,0.2);">Generated by Claude AI · Not financial advice · ${new Date().toLocaleTimeString()}</div>
+    </div>`;
+    if(btn){btn.textContent='✨ AI Explain';btn.disabled=false;}
+  } catch(e) {
+    result.innerHTML=`<div style="padding:12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;font-size:0.78rem;color:#e74c3c;">AI unavailable: ${e.message}</div>`;
+    if(btn){btn.textContent='✨ AI Explain';btn.disabled=false;}
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  OPTION 3: ASK YOUR PORTFOLIO — Natural Language Query
+// ─────────────────────────────────────────────────────────────────────────────
+window.renderAskPortfolio = function() {
+  const el = document.getElementById('stAskAiContent');
+  if (!el || el.dataset.loaded) return;
+  el.dataset.loaded = '1';
+
+  const suggestions = [
+    'Which of my stocks have the highest unrealized gain?',
+    'What is my total tech sector exposure?',
+    'How much would I have made if I put everything in SPY instead?',
+    'Which position has the worst yield on cost?',
+    'What are my top 3 losers this year?',
+    'How diversified am I across sectors?',
+    'What is my total dividend income this year?',
+    'Which stock has the highest volatility in my portfolio?',
+    'If AVGO drops 20%, how much do I lose?',
+    'What is my overall portfolio win rate on closed trades?',
+  ];
+
+  el.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <!-- Input area -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input id="askPortfolioInput" type="text" placeholder="Ask anything about your portfolio…"
+          style="flex:1;padding:10px 14px;border-radius:9px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);font-size:0.85rem;outline:none;"
+          onkeydown="if(event.key==='Enter')window.submitPortfolioQuestion()"/>
+        <button onclick="window.submitPortfolioQuestion()"
+          style="padding:10px 18px;border-radius:9px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+          ✨ Ask
+        </button>
+      </div>
+
+      <!-- Suggested questions -->
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-secondary);margin-bottom:6px;">💡 Suggested Questions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+        ${suggestions.map(q=>`<button onclick="document.getElementById('askPortfolioInput').value=${JSON.stringify(q)};window.submitPortfolioQuestion();"
+          style="padding:5px 10px;border-radius:999px;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text-secondary);font-size:0.7rem;cursor:pointer;text-align:left;line-height:1.4;">
+          ${q}
+        </button>`).join('')}
+      </div>
+
+      <!-- Chat history -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;min-height:20px;">
+        <span id="askPortfolioChatCount" style="font-size:0.65rem;color:var(--text-secondary);"></span>
+        <button id="clearChatBtn" onclick="window.clearPortfolioChat()" style="display:none;padding:3px 10px;font-size:0.68rem;border-radius:6px;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);cursor:pointer;">🗑️ Clear chat</button>
+      </div>
+      <div id="askPortfolioChat" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+
+    <p style="font-size:0.65rem;color:var(--text-secondary);padding-top:8px;border-top:1px solid var(--border-color);">
+      Claude reads your live portfolio data (holdings, prices, history, transactions, dividends) to answer. No data leaves your browser except to the Claude API.
+      Responses are AI-generated estimates — not financial advice.
+    </p>`;
+};
+
+window.clearPortfolioChat = function() {
+  const chat = document.getElementById('askPortfolioChat');
+  const count = document.getElementById('askPortfolioChatCount');
+  const btn   = document.getElementById('clearChatBtn');
+  if (chat)  chat.innerHTML = '';
+  if (count) count.textContent = '';
+  if (btn)   btn.style.display = 'none';
+};
+
+window._updateChatCounter = function() {
+  const chat  = document.getElementById('askPortfolioChat');
+  const count = document.getElementById('askPortfolioChatCount');
+  const btn   = document.getElementById('clearChatBtn');
+  if (!chat) return;
+  const msgs = chat.children.length;
+  if (count) count.textContent = msgs > 0 ? `${Math.ceil(msgs/2)} question${Math.ceil(msgs/2)!==1?'s':''}` : '';
+  if (btn)   btn.style.display = msgs > 0 ? 'inline-block' : 'none';
+};
+
+window.submitPortfolioQuestion = async function() {
+  const input = document.getElementById('askPortfolioInput');
+  const chat  = document.getElementById('askPortfolioChat');
+  if (!input || !chat) return;
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  const tracker = window.stockTracker;
+  if (!tracker || (!tracker.stocks && !tracker.mutualFunds)) {
+    const chat2 = document.getElementById("askPortfolioChat");
+    if(chat2) { const e=document.createElement("div"); e.style.cssText="align-self:flex-start;padding:10px 14px;background:rgba(231,76,60,0.1);border-radius:9px;font-size:0.8rem;color:#e74c3c;"; e.textContent="Portfolio not loaded yet — sign in and run Live Update first."; chat2.appendChild(e); } return;
+  }
+
+  // ── Append user bubble ──────────────────────────────────────────────────
+  const userBubble = document.createElement('div');
+  userBubble.style.cssText = 'align-self:flex-end;max-width:80%;padding:10px 14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:14px 14px 4px 14px;font-size:0.82rem;line-height:1.5;';
+  userBubble.textContent = question;
+  chat.appendChild(userBubble);
+
+  // ── Typing indicator ────────────────────────────────────────────────────
+  const typing = document.createElement('div');
+  typing.style.cssText = 'align-self:flex-start;max-width:85%;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:14px 14px 14px 4px;font-size:0.82rem;color:var(--text-secondary);';
+  typing.innerHTML = '⏳ Reading your portfolio…';
+  chat.appendChild(typing);
+  window._updateChatCounter();
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    // ── Dump the raw tracker state as JSON — no manual field mapping needed ──
+    // The AI reads every field directly, so no question ever gets "Unknown"
+    const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+
+    const calcStats = (item) => tracker.calculateTransactionStats(
+      JSON.parse(JSON.stringify(item.transactions||[])), item.price||0
+    );
+
+    // Build a clean summary object per holding using EVERY available field
+    const holdings = allItems.map(item => {
+      const stats = calcStats(item);
+      return {
+        symbol:          item.symbol,
+        name:            item.name || item.symbol,
+        price:           item.price || 0,
+        changeToday:     item.change || 0,
+        changePctToday:  item.changePercent ?? item.percentChange ?? 0,
+        previousClose:   item.previousClose || 0,
+        sharesOwned:     stats.totalSharesOwned || 0,
+        avgCostPerShare: stats.averageCostBasis || 0,
+        totalCostBasis:  stats.costOfRemainingShares || 0,
+        currentValue:    (stats.totalSharesOwned||0) * (item.price||0),
+        unrealizedPL:    stats.unrealizedPL || 0,
+        unrealizedPLPct: stats.costOfRemainingShares > 0
+                           ? (stats.unrealizedPL / stats.costOfRemainingShares * 100)
+                           : 0,
+        realizedPL:      stats.realizedPL || 0,
+        dividendsTotal:  (item.dividends||[]).reduce((s,d)=>s+(parseFloat(d.totalAmount)||0),0),
+        sector:          item.industry || item.sector || item.finnhubSector || item.gsector || null,
+        peRatio:         item.pe || item.peRatio || null,
+        marketCap:       item.marketCap || null,
+        week52High:      item.week52High || item.yearHigh || null,
+        week52Low:       item.week52Low  || item.yearLow  || null,
+        beta:            item.beta || null,
+        type:            item.type || (item.symbol?.length===5&&item.symbol.endsWith('X')?'mutual_fund':'stock'),
+      };
+    });
+
+    // Portfolio-level summary
+    const totalVal  = holdings.reduce((s,h)=>s+h.currentValue,0);
+    const totalCost = holdings.reduce((s,h)=>s+h.totalCostBasis,0);
+    const totalUnreal = holdings.reduce((s,h)=>s+h.unrealizedPL,0);
+    const totalDivs = holdings.reduce((s,h)=>s+h.dividendsTotal,0);
+
+    // Sector breakdown — computed, not guessed
+    const sectorMap = {};
+    holdings.forEach(h => {
+      const sec = h.sector || 'Unknown';
+      sectorMap[sec] = (sectorMap[sec]||0) + h.currentValue;
+    });
+    const sectors = Object.entries(sectorMap)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([sec,val])=>({ sector:sec, value:val, pct:(val/totalVal*100).toFixed(1)+'%' }));
+
+    // Portfolio history for trend questions
+    const portHist = (tracker.portfolioHistory||[]).slice(-30);
+    const startVal  = portHist.length>0?Number(portHist[0].value||0):totalCost;
+    const ret30d    = startVal>0?((totalVal-startVal)/startVal*100).toFixed(1)+'%':null;
+
+    const portfolioJSON = JSON.stringify({
+      asOf:           new Date().toLocaleDateString(),
+      summary: {
+        totalValue:        totalVal,
+        totalCostBasis:    totalCost,
+        unrealizedPL:      totalUnreal,
+        unrealizedPLPct:   totalCost>0?(totalUnreal/totalCost*100).toFixed(1)+'%':'N/A',
+        totalDividends:    totalDivs,
+        return30d:         ret30d,
+        numberOfHoldings:  holdings.length,
+      },
+      sectorBreakdown: sectors,
+      holdings:        holdings.sort((a,b)=>b.unrealizedPLPct-a.unrealizedPLPct),
+      recentHistory:   portHist.slice(-7).map(h=>({date:h.date,value:h.value})),
+    }, null, 2);
+
+    const systemPrompt = `You are a personal financial analyst AI. The user's complete live portfolio data is below as JSON — treat it as ground truth. Answer questions using exact numbers from the data. Be concise but always complete your full answer. Do not use markdown bold (**). When asked about gains, give both dollar and percentage answers.
+
+PORTFOLIO DATA:
+${portfolioJSON}`;
+
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages:[{role:'user',content:question}]
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (!text) throw new Error('Empty response — data: '+JSON.stringify(data).slice(0,200));
+
+    typing.style.cssText = 'align-self:flex-start;max-width:85%;padding:12px 14px;background:var(--bg-secondary);border:1px solid rgba(102,126,234,0.3);border-radius:14px 14px 14px 4px;font-size:0.82rem;color:var(--text-primary);line-height:1.65;';
+    typing.innerHTML = `<div style="font-size:0.62rem;color:rgba(102,126,234,0.8);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">✨ Claude</div>
+      ${text.split('\n\n').join('</p><p style="margin:6px 0;">').split('\n').join('<br>')}
+      <div style="font-size:0.6rem;color:var(--text-secondary);margin-top:8px;">${new Date().toLocaleTimeString()}</div>`;
+  } catch(e) {
+    typing.style.cssText = 'align-self:flex-start;max-width:85%;padding:10px 14px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.3);border-radius:14px 14px 14px 4px;font-size:0.78rem;color:#e74c3c;';
+    typing.textContent = 'Error: '+e.message;
+  }
+  window._updateChatCounter();
+  chat.scrollTop = chat.scrollHeight;
+};
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     FEATURE: ETF OVERLAP DETECTOR
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+
+// ── Knowledge base ─────────────────────────────────────────────────────────
+// Category: [{ symbols, name, description }]
+// Similarity groups: funds in the same group are near-identical
+const OVERLAP_DB = {
+
+  // ── IDENTICAL INDEX GROUPS (different fund companies, same index) ─────────
+  identicalGroups: [
+    {
+      name: 'S&P 500',
+      description: 'All track the exact same 500 large-cap US stocks.',
+      symbols: ['VOO','IVV','SPY','SPLG','FXAIX','SWPPX','SXPAX'],
+    },
+    {
+      name: 'Total US Market',
+      description: 'Covers virtually the entire US stock market.',
+      symbols: ['VTI','ITOT','SWTSX','FSKAX','FZROX'],
+    },
+    {
+      name: 'US Tech (Information Technology)',
+      description: 'Both track the MSCI US IMI Information Technology index.',
+      symbols: ['VGT','FTEC'],
+    },
+    {
+      name: 'Nasdaq-100',
+      description: 'Tracks the 100 largest non-financial Nasdaq companies.',
+      symbols: ['QQQ','QQQM'],
+    },
+    {
+      name: 'Total International',
+      description: 'Broad international developed + emerging markets.',
+      symbols: ['VXUS','IXUS','SWISX'],
+    },
+    {
+      name: 'Emerging Markets',
+      description: 'Tracks developing country equities.',
+      symbols: ['VWO','EEM','IEMG','SPEM'],
+    },
+    {
+      name: 'US Dividend (High Quality)',
+      description: 'Dividend growth focused ETFs with significant overlap.',
+      symbols: ['SCHD','VYM','DVY','HDV'],
+    },
+    {
+      name: 'Semiconductors',
+      description: 'Concentrated semiconductor sector funds.',
+      symbols: ['SOXX','SMH','FSELX','PSI'],
+    },
+    {
+      name: 'S&P 500 Growth',
+      description: 'Large-cap US growth stocks — top holdings nearly identical.',
+      symbols: ['SCHG','IVW','VOOG','SPYG','VUG'],
+    },
+    {
+      name: 'Total Bond Market',
+      description: 'Broad US investment-grade bond market.',
+      symbols: ['BND','AGG','FXNAX'],
+    },
+    {
+      name: 'Short-Term Treasury',
+      description: 'Short-duration US government bonds.',
+      symbols: ['VGSH','SHY','SCHO'],
+    },
+    {
+      name: 'Real Estate (REIT)',
+      description: 'US Real Estate Investment Trusts.',
+      symbols: ['VNQ','IYR','SCHH','FREL'],
+    },
+  ],
+
+  // ── SHADOW OVERLAP (different names, but heavily overlapping top holdings) ─
+  shadowGroups: [
+    {
+      name: 'Apple + Microsoft + Nvidia + Meta + Amazon Show',
+      description: 'These all have the same 5 mega-caps as their top holdings (~40–60% of each fund).',
+      symbols: ['QQQ','QQQM','SCHG','VUG','IVW','VOOG','SPYG','MGK','ONEQ'],
+      severity: 'high',
+    },
+    {
+      name: 'S&P 500 is already ~30% Tech',
+      description: 'Holding both a broad S&P 500 fund and a tech ETF means your Apple/MSFT/NVDA exposure is doubled.',
+      symbols: ['VOO','IVV','SPY','FXAIX'],
+      pairedWith: ['QQQ','QQQM','VGT','FTEC','IYW','XLK','SCHG','VUG'],
+      severity: 'medium',
+    },
+    {
+      name: 'VTI already contains VOO/SPY (S&P 500 = 85% of VTI)',
+      description: 'VTI is a superset of VOO. Holding both means 85% of your VTI duplicates your VOO position.',
+      symbols: ['VTI','ITOT','FSKAX'],
+      pairedWith: ['VOO','IVV','SPY','FXAIX','SPLG'],
+      severity: 'high',
+    },
+    {
+      name: 'Semiconductor funds overlap heavily with Tech ETFs',
+      description: 'SOXX/SMH/FSELX are concentrated slices of what VGT/QQQ already own.',
+      symbols: ['SOXX','SMH','FSELX','PSI'],
+      pairedWith: ['VGT','FTEC','QQQ','QQQM','IYW','XLK'],
+      severity: 'medium',
+    },
+    {
+      name: 'SCHD and VYM are both dividend ETFs with ~60% overlap',
+      description: 'Both focus on high-dividend US equities. Many of the same companies appear in both.',
+      symbols: ['SCHD','VYM'],
+      severity: 'medium',
+    },
+  ],
+
+  // ── CATEGORY TAGS ─────────────────────────────────────────────────────────
+  categories: {
+    'Core S&P 500':      ['VOO','IVV','SPY','SPLG','FXAIX','SWPPX'],
+    'Total US Market':   ['VTI','ITOT','SWTSX','FSKAX','FZROX'],
+    'US Growth/Tech':    ['QQQ','QQQM','VGT','FTEC','IYW','XLK','SCHG','VUG','IVW','VOOG','SPYG','MGK','ONEQ'],
+    'Semiconductors':    ['SOXX','SMH','FSELX','PSI','NVDA'],
+    'Value/Dividend':    ['SCHD','VYM','DVY','HDV','VTV','IVE'],
+    'International':     ['VXUS','IXUS','VEA','EFA','VWO','EEM','IEMG'],
+    'Bonds':             ['BND','AGG','FXNAX','VGSH','SHY','TLT','IEF'],
+    'Real Estate':       ['VNQ','IYR','SCHH','FREL'],
+    'Energy':            ['XLE','VDE','FENY'],
+    'Healthcare':        ['XLV','VHT','FHLC'],
+    'Leveraged':         ['TSLL','NVDL','TQQQ','SOXL','UPRO','SSO'],
+  },
+};
+
+// ── Main render function ───────────────────────────────────────────────────
+window.renderOverlap = function() {
+  const el = document.getElementById('stOverlapContent');
+  if (!el) return;
+  const tracker = window.stockTracker;
+  if (!tracker) {
+    el.innerHTML = '<p style="padding:16px;color:var(--text-secondary);text-align:center;">⏳ Portfolio not loaded yet.</p>';
+    return;
+  }
+
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+  const symbols  = allItems.map(i => i.symbol.toUpperCase());
+
+  if (symbols.length === 0) {
+    el.innerHTML = '<p style="padding:16px;color:var(--text-secondary);text-align:center;">No holdings found. Add stocks and funds first.</p>';
+    return;
+  }
+
+  // ── Check identical index overlaps ────────────────────────────────────────
+  const identicalHits = [];
+  OVERLAP_DB.identicalGroups.forEach(group => {
+    const matches = symbols.filter(s => group.symbols.includes(s));
+    if (matches.length >= 2) {
+      identicalHits.push({ ...group, matches });
+    }
+  });
+
+  // ── Check shadow overlaps ─────────────────────────────────────────────────
+  const shadowHits = [];
+  OVERLAP_DB.shadowGroups.forEach(group => {
+    if (group.pairedWith) {
+      // Check if user holds at least 1 from each side
+      const sideA = symbols.filter(s => group.symbols.includes(s));
+      const sideB = symbols.filter(s => group.pairedWith.includes(s));
+      if (sideA.length > 0 && sideB.length > 0) {
+        shadowHits.push({ ...group, matchesA: sideA, matchesB: sideB });
+      }
+    } else {
+      const matches = symbols.filter(s => group.symbols.includes(s));
+      if (matches.length >= 2) {
+        shadowHits.push({ ...group, matches });
+      }
+    }
+  });
+
+  // ── Category breakdown ────────────────────────────────────────────────────
+  const categoryMap = {};
+  symbols.forEach(sym => {
+    let found = false;
+    Object.entries(OVERLAP_DB.categories).forEach(([cat, tickers]) => {
+      if (tickers.includes(sym)) {
+        if (!categoryMap[cat]) categoryMap[cat] = [];
+        categoryMap[cat].push(sym);
+        found = true;
+      }
+    });
+    if (!found) {
+      if (!categoryMap['Other/Individual']) categoryMap['Other/Individual'] = [];
+      categoryMap['Other/Individual'].push(sym);
+    }
+  });
+
+  const overlapScore = Math.min(100, identicalHits.length * 35 + shadowHits.filter(h=>h.severity==='high').length * 25 + shadowHits.filter(h=>h.severity==='medium').length * 15);
+  const scoreColor   = overlapScore >= 60 ? '#e74c3c' : overlapScore >= 30 ? '#f39c12' : '#27ae60';
+  const scoreLabel   = overlapScore >= 60 ? '🔴 High Redundancy' : overlapScore >= 30 ? '🟡 Moderate Overlap' : '🟢 Well Diversified';
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  const identicalHTML = identicalHits.map(h => `
+    <div style="padding:12px 14px;background:var(--bg-secondary);border:1px solid #e74c3c;border-left:4px solid #e74c3c;border-radius:9px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:6px;">
+        <div style="font-size:0.8rem;font-weight:800;color:#e74c3c;">🔴 Identical Index: ${h.name}</div>
+        <div style="display:flex;gap:5px;">${h.matches.map(s=>`<span style="padding:2px 8px;background:rgba(231,76,60,0.15);border-radius:999px;font-size:0.72rem;font-weight:700;color:#e74c3c;">${s}</span>`).join('')}</div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">${h.description}</div>
+      <div style="font-size:0.72rem;color:#e74c3c;margin-top:6px;font-weight:600;">💡 Recommendation: Keep one, sell the rest. You're paying fees for the same exposure.</div>
+    </div>`).join('');
+
+  const shadowHTML = shadowHits.map(h => {
+    const col = h.severity === 'high' ? '#f39c12' : '#3498db';
+    const icon = h.severity === 'high' ? '🟠' : '🔵';
+    const matchBadges = h.matches
+      ? h.matches.map(s=>`<span style="padding:2px 8px;background:rgba(243,156,18,0.15);border-radius:999px;font-size:0.72rem;font-weight:700;color:${col};">${s}</span>`).join('')
+      : [...(h.matchesA||[]).map(s=>`<span style="padding:2px 8px;background:rgba(243,156,18,0.15);border-radius:999px;font-size:0.72rem;font-weight:700;color:${col};">${s}</span>`),
+         '<span style="font-size:0.7rem;color:var(--text-secondary);padding:2px 4px;">overlaps with</span>',
+         ...(h.matchesB||[]).map(s=>`<span style="padding:2px 8px;background:rgba(52,152,219,0.15);border-radius:999px;font-size:0.72rem;font-weight:700;color:#3498db;">${s}</span>`)
+        ].join('');
+    return `
+    <div style="padding:12px 14px;background:var(--bg-secondary);border:1px solid ${col};border-left:4px solid ${col};border-radius:9px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+        <div style="font-size:0.8rem;font-weight:800;color:${col};">${icon} Shadow Overlap: ${h.name}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">${matchBadges}</div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">${h.description}</div>
+    </div>`;
+  }).join('');
+
+  const catRows = Object.entries(categoryMap).map(([cat, syms]) => {
+    const warn = syms.length > 1 && cat !== 'Other/Individual';
+    return `<tr style="border-bottom:0.5px solid var(--border-color);">
+      <td style="padding:6px 8px;font-size:0.75rem;font-weight:600;">${cat}</td>
+      <td style="padding:6px 8px;font-size:0.75rem;">${syms.map(s=>`<span style="padding:2px 7px;border-radius:999px;border:1px solid var(--border-color);margin-right:3px;font-size:0.7rem;">${s}</span>`).join('')}</td>
+      <td style="padding:6px 8px;text-align:center;">${warn ? '<span style="color:#f39c12;font-size:0.72rem;font-weight:700;">⚠️ Possible overlap</span>' : '<span style="color:#27ae60;font-size:0.72rem;">✅</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const totalIssues = identicalHits.length + shadowHits.length;
+
+  el.innerHTML = `
+    <!-- Score header -->
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:10px;">
+      <div style="position:relative;width:64px;height:64px;flex-shrink:0;">
+        <svg viewBox="0 0 36 36" style="width:64px;height:64px;transform:rotate(-90deg);">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border-color)" stroke-width="3"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="${scoreColor}" stroke-width="3"
+            stroke-dasharray="${overlapScore} ${100-overlapScore}" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;color:${scoreColor};">${overlapScore}</div>
+      </div>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:${scoreColor};">${scoreLabel}</div>
+        <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:3px;">${symbols.length} holdings scanned · ${totalIssues} issue${totalIssues!==1?'s':''} found</div>
+        <div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;">Overlap score: 0 = fully unique · 100 = all duplicates</div>
+      </div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;gap:5px;align-items:flex-end;">
+        <button onclick="window.runOverlapAI('cleanup')" id="overlapAiBtn"
+          style="padding:6px 13px;border-radius:7px;border:none;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;">
+          🧹 Cleanup Advice
+        </button>
+        <button onclick="window.runOverlapAI('rebalance')" id="overlapRebalBtn"
+          style="padding:6px 13px;border-radius:7px;border:none;background:linear-gradient(135deg,#0f766e,#0ea5e9);color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;">
+          ⚖️ Rebalance Plan
+        </button>
+        <button onclick="window.runOverlapAI('outlook')" id="overlapOutlookBtn"
+          style="padding:6px 13px;border-radius:7px;border:none;background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;white-space:nowrap;width:100%;">
+          🔭 5–10yr Outlook
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Result -->
+    <div id="overlapAiResult" style="display:none;margin-bottom:14px;padding:12px;background:rgba(0,0,0,0.1);border:1px solid var(--border-color);border-radius:9px;font-size:0.8rem;color:var(--text-secondary);text-align:center;"></div>
+
+    ${totalIssues === 0 ? `
+    <div style="padding:16px;background:rgba(39,174,96,0.08);border:1px solid rgba(39,174,96,0.3);border-radius:9px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:1.2rem;">✅</div>
+      <div style="font-size:0.85rem;font-weight:700;color:#27ae60;margin-top:4px;">No Overlap Detected</div>
+      <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px;">Your holdings appear to be distinct. No identical index funds or known shadow overlaps found.</div>
+    </div>` : ''}
+
+    ${identicalHits.length > 0 ? `
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#e74c3c;margin-bottom:8px;">🔴 Identical Index Funds (${identicalHits.length})</div>
+    ${identicalHTML}` : ''}
+
+    ${shadowHits.length > 0 ? `
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#f39c12;margin:14px 0 8px;">🟠 Shadow Overlap (${shadowHits.length})</div>
+    ${shadowHTML}` : ''}
+
+    <!-- Category table -->
+    <div style="margin-top:16px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;">📋 Holdings by Category</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="border-bottom:2px solid var(--border-color);font-size:0.68rem;color:var(--text-secondary);">
+            <th style="padding:5px 8px;text-align:left;">Category</th>
+            <th style="padding:5px 8px;text-align:left;">Your Holdings</th>
+            <th style="padding:5px 8px;text-align:center;">Status</th>
+          </tr></thead>
+          <tbody>${catRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <details style="margin-top:14px;">
+      <summary style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);cursor:pointer;text-transform:uppercase;letter-spacing:0.4px;">ℹ️ How Overlap Detection Works</summary>
+      <div style="margin-top:8px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;font-size:0.76rem;color:var(--text-secondary);line-height:1.7;">
+        <strong style="color:var(--text-primary);">Identical Index:</strong> Flags funds from different companies that track the exact same index (e.g. VOO vs FXAIX = both S&P 500). You're paying two expense ratios for one bet.<br><br>
+        <strong style="color:var(--text-primary);">Shadow Overlap:</strong> Flags funds with different names but heavily overlapping top holdings. QQQ and SCHG sound different but both are ~40% Apple + Microsoft + Nvidia.<br><br>
+        <strong style="color:var(--text-primary);">Overlap Score:</strong> 0 = all your holdings are unique · 100 = everything duplicates everything else. Under 30 is healthy for most portfolios.<br><br>
+        <em>Based on a static knowledge base of common ETF relationships. For exact overlap percentages, check ETFrc.com or Morningstar X-Ray.</em>
+      </div>
+    </details>
+
+    <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:12px;padding-top:8px;border-top:1px solid var(--border-color);">
+      Knowledge base covers 60+ common ETFs and mutual funds. Individual stocks are excluded from overlap analysis. Not financial advice.
+    </p>`;
+};
+
+// ── AI Advice for overlap — 3 modes: cleanup / rebalance / outlook ───────────
+// ══════════════════════════════════════════════
+//  AI PORTFOLIO DOCTOR
+// ══════════════════════════════════════════════
+window.renderAIDoctor = function() {
+  // Panel is already rendered via static HTML — nothing to do
+};
+
+window.runAIDoctor = async function(mode) {
+  const tracker = window.stockTracker;
+  if (!tracker) return;
+
+  const result  = document.getElementById('doctorResult');
+  const scores  = document.getElementById('doctorScores');
+  const buttons = ['doctorBtnFull','doctorBtnRisk','doctorBtnDiv','doctorBtnRet','doctorBtnAction'];
+
+  // Disable all buttons
+  buttons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  });
+
+  result.style.display = 'block';
+  result.innerHTML = `<div style="padding:16px;background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1));
+    border:1px solid rgba(102,126,234,0.3);border-radius:10px;">
+    <div style="font-size:0.72rem;color:rgba(102,126,234,0.9);font-weight:700;margin-bottom:8px;">🩺 Analyzing your portfolio...</div>
+    <div style="font-size:0.8rem;color:var(--text-secondary);">Reading ${tracker.stocks?.length || 0} stocks and ${tracker.mutualFunds?.length || 0} funds...</div>
+  </div>`;
+
+  // Collect portfolio data
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+  const totalVal = allItems.reduce((s, item) => {
+    const sh = (item.transactions||[]).reduce((a,t) => t.type==='buy'?a+t.shares:a-t.shares, 0);
+    return s + Math.max(0, sh) * (item.price||0);
+  }, 0);
+
+  const positions = allItems.map(item => {
+    const sh = (item.transactions||[]).reduce((a,t) => t.type==='buy'?a+t.shares:a-t.shares, 0);
+    const val = Math.max(0, sh) * (item.price||0);
+    const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : 0;
+    const avgCost = (item.transactions||[]).filter(t=>t.type==='buy').length > 0
+      ? (item.transactions||[]).filter(t=>t.type==='buy').reduce((s,t)=>s+t.price*t.shares,0)
+        / (item.transactions||[]).filter(t=>t.type==='buy').reduce((s,t)=>s+t.shares,0)
+      : 0;
+    const plPct = avgCost > 0 ? ((item.price - avgCost)/avgCost*100).toFixed(1) : 0;
+    return { symbol: item.symbol, val: val.toFixed(0), pct, price: item.price||0, plPct, shares: Math.max(0,sh).toFixed(2) };
+  }).filter(p => p.val > 0).sort((a,b) => b.val - a.val);
+
+  // Calculate scores
+  const numPositions   = positions.length;
+  const topHolding     = positions[0] || {};
+  const topPct         = parseFloat(topHolding.pct || 0);
+  const top5Pct        = positions.slice(0,5).reduce((s,p)=>s+parseFloat(p.pct),0);
+  const divScore       = Math.max(0, Math.min(100, Math.round(100 - (topPct*1.5) - Math.max(0,(50-numPositions)*0.5))));
+  const riskLevel      = topPct > 30 ? '🔴 HIGH' : topPct > 20 ? '🟡 MODERATE' : '🟢 LOW';
+  const concLevel      = top5Pct > 80 ? '🔴 HIGH' : top5Pct > 60 ? '🟡 MOD' : '🟢 LOW';
+
+  // Show score cards
+  scores.style.display = 'block';
+  const scoreColor = s => s >= 70 ? '#27ae60' : s >= 40 ? '#f39c12' : '#e74c3c';
+  document.getElementById('scoreDiv').textContent  = divScore;
+  document.getElementById('scoreDiv').style.color  = scoreColor(divScore);
+  document.getElementById('scoreRisk').textContent = riskLevel;
+  document.getElementById('scoreConc').textContent = concLevel;
+  document.getElementById('scoreTop').textContent  = `${topHolding.symbol||'—'} ${topPct}%`;
+  document.getElementById('scoreTop').style.color  = topPct > 25 ? '#e74c3c' : '#27ae60';
+  document.getElementById('scorePos').textContent  = numPositions;
+  document.getElementById('scorePos').style.color  = numPositions >= 20 ? '#27ae60' : numPositions >= 10 ? '#f39c12' : '#e74c3c';
+
+  // Build prompt based on mode
+  const positionSummary = positions.slice(0,20).map(p =>
+    `${p.symbol}: ${p.pct}% ($${parseInt(p.val).toLocaleString()}, P/L: ${p.plPct}%)`
+  ).join(', ');
+
+  const portfolioContext = `
+Portfolio Total: $${totalVal.toLocaleString('en-US',{maximumFractionDigits:0})}
+Number of positions: ${numPositions}
+Diversification score: ${divScore}/100
+Top holding: ${topHolding.symbol} at ${topPct}%
+Top 5 positions: ${top5Pct.toFixed(1)}% of portfolio
+Goal: $3,000,000 retirement
+All positions (top 20): ${positionSummary}`;
+
+  const prompts = {
+    full: `You are a senior financial advisor conducting a comprehensive portfolio health checkup. Analyze this portfolio thoroughly and provide:
+1. Overall portfolio health assessment (grade A-F with explanation)
+2. Top 3 strengths of this portfolio
+3. Top 3 concerns or weaknesses
+4. Concentration risk assessment
+5. Sector diversification gaps
+6. Specific actionable recommendations
+
+${portfolioContext}
+
+Be specific with numbers. Use the actual symbols mentioned. Write in flowing paragraphs. Always complete your full analysis.`,
+
+    risk: `You are a risk management expert. Analyze this portfolio's risk profile:
+1. Overall risk level assessment
+2. Concentration risk (single stock, sector)
+3. Correlation risk (holdings that move together)
+4. Downside scenario analysis (what happens in a 20% market crash?)
+5. Specific risk mitigation steps
+
+${portfolioContext}
+
+Be direct and specific. Always complete your full analysis.`,
+
+    diversification: `You are a portfolio diversification expert. Analyze:
+1. Geographic diversification (US vs international exposure)
+2. Sector diversification (which sectors are over/under represented)
+3. Asset class mix (growth vs value vs income vs defensive)
+4. Size diversification (large/mid/small cap)
+5. Specific ETFs or sectors to add for better balance
+
+${portfolioContext}
+
+Be specific with recommendations. Always complete your full analysis.`,
+
+    retirement: `You are a retirement planning specialist. Evaluate this portfolio's fitness for a $3M retirement goal:
+1. Is the current allocation appropriate for retirement building?
+2. Growth potential vs income generation balance
+3. Sequence of returns risk assessment
+4. Suggested glide path as retirement approaches
+5. Specific changes to optimize for the $3M goal
+
+${portfolioContext}
+
+Be practical and specific. Always complete your full analysis.`,
+
+    action: `You are a portfolio strategist. Create a specific action plan:
+1. IMMEDIATE actions (do this week)
+2. SHORT-TERM actions (next 1-3 months)
+3. LONG-TERM strategy (6-12 months)
+4. Positions to TRIM (overweight)
+5. Areas to ADD (underweight)
+6. Positions to WATCH (monitor closely)
+
+${portfolioContext}
+
+Be very specific with symbols and percentages. Always complete your full action plan.`
+  };
+
+  try {
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompts[mode] }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (!text) throw new Error('No response from AI');
+
+    const modeLabels = {
+      full: '🩺 Full Portfolio Checkup',
+      risk: '⚠️ Risk Analysis',
+      diversification: '🌐 Diversification Report',
+      retirement: '🎯 Retirement Fit Analysis',
+      action: '📋 Action Plan'
+    };
+    const modeColors = {
+      full: '#667eea', risk: '#e74c3c', diversification: '#27ae60',
+      retirement: '#f39c12', action: '#00bcd4'
+    };
+    const col = modeColors[mode] || '#667eea';
+
+    result.innerHTML = `
+      <div style="padding:18px;background:linear-gradient(135deg,rgba(102,126,234,0.06),rgba(118,75,162,0.06));
+        border:1px solid rgba(102,126,234,0.2);border-radius:10px;">
+        <div style="font-size:0.72rem;color:${col};font-weight:700;text-transform:uppercase;
+          letter-spacing:0.4px;margin-bottom:12px;">${modeLabels[mode]}</div>
+        <div style="font-size:0.83rem;color:var(--text-primary);line-height:1.75;">
+          ${text.split('\n\n').map(p=>`<p style="margin:0 0 10px 0;">${p.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</p>`).join('')}
+        </div>
+      </div>`;
+
+  } catch(e) {
+    result.innerHTML = `<div style="padding:12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);
+      border-radius:8px;font-size:0.78rem;color:#e74c3c;">
+      AI analysis unavailable: ${e.message}</div>`;
+  }
+
+  // Re-enable buttons
+  buttons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  });
+};
+
+window.runOverlapAI = async function(mode) {
+  mode = mode || 'cleanup';
+  const btnMap = { cleanup:'overlapAiBtn', rebalance:'overlapRebalBtn', outlook:'overlapOutlookBtn' };
+  const labelMap = { cleanup:'🧹 Cleanup Advice', rebalance:'⚖️ Rebalance Plan', outlook:'🔭 5–10yr Outlook' };
+  const loadingMap = { cleanup:'Reviewing for redundancy…', rebalance:'Building rebalance plan…', outlook:'Analyzing market outlook…' };
+  const headerMap = {
+    cleanup:   { text:'🧹 Portfolio Cleanup Advice',         color:'rgba(102,126,234,1)' },
+    rebalance: { text:'⚖️ Diversification & Rebalance Plan', color:'#0ea5e9'              },
+    outlook:   { text:'🔭 5–10 Year Market Outlook',         color:'#f59e0b'              },
+  };
+
+  const btn    = document.getElementById(btnMap[mode]);
+  const result = document.getElementById('overlapAiResult');
+  if (!result) return;
+
+  // Disable all 3 buttons while loading
+  ['overlapAiBtn','overlapRebalBtn','overlapOutlookBtn'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = true;
+  });
+  if (btn) btn.textContent = '⏳ ' + loadingMap[mode];
+
+  // Show inline spinner while loading
+  result.style.display = 'block';
+  result.innerHTML = `<span style="opacity:0.7;">⏳ ${loadingMap[mode]}</span>`;
+
+  // Create or reuse the fullscreen popup modal
+  let popup = document.getElementById('overlapAiPopup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'overlapAiPopup';
+    popup.style.cssText = [
+      'position:fixed','inset:0','z-index:99999',
+      'background:rgba(0,0,0,0.75)','backdrop-filter:blur(6px)',
+      'display:flex','align-items:center','justify-content:center',
+      'padding:16px','box-sizing:border-box',
+    ].join(';');
+    // Close on backdrop click
+    popup.addEventListener('click', (e) => {
+      if (e.target === popup) window.closeOverlapPopup();
+    });
+    document.body.appendChild(popup);
+  }
+  popup.innerHTML = `
+    <div style="background:var(--bg-primary,#0f1117);border:1px solid var(--border-color);border-radius:16px;
+      width:100%;max-width:820px;max-height:90vh;display:flex;flex-direction:column;
+      box-shadow:0 32px 80px rgba(0,0,0,0.6);overflow:hidden;">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;
+        border-bottom:1px solid var(--border-color);flex-shrink:0;">
+        <div style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;
+          color:var(--text-secondary);" id="overlapPopupTitle">⏳ ${loadingMap[mode]}</div>
+        <button onclick="window.closeOverlapPopup()"
+          style="background:rgba(255,255,255,0.08);border:1px solid var(--border-color);
+          border-radius:999px;color:var(--text-secondary);font-size:1rem;
+          width:30px;height:30px;cursor:pointer;line-height:1;flex-shrink:0;">✕</button>
+      </div>
+      <!-- Body — scrollable -->
+      <div id="overlapPopupBody" style="overflow-y:auto;padding:24px 26px;flex:1;
+        font-size:0.85rem;color:var(--text-primary);line-height:1.8;
+        -webkit-overflow-scrolling:touch;">
+        <div style="display:flex;align-items:center;gap:10px;color:var(--text-secondary);">
+          <div style="width:18px;height:18px;border:2px solid var(--border-color);
+            border-top-color:var(--accent-primary,#3498db);border-radius:50%;
+            animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+          Analyzing your portfolio…
+        </div>
+      </div>
+      <!-- Footer -->
+      <div id="overlapPopupFooter" style="display:none;padding:12px 26px;
+        border-top:1px solid var(--border-color);flex-shrink:0;
+        display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:0.62rem;color:var(--text-secondary);">
+          Generated by Gemini AI · Not financial advice · ${new Date().toLocaleDateString()}
+        </div>
+        <button onclick="window.closeOverlapPopup()"
+          style="padding:8px 22px;border-radius:8px;border:none;
+          background:var(--accent-primary,#3498db);color:#fff;
+          font-size:0.8rem;font-weight:700;cursor:pointer;">
+          ✓ Done Reading
+        </button>
+      </div>
+    </div>`;
+
+  // Add spin animation if not present
+  if (!document.getElementById('overlapSpinStyle')) {
+    const st = document.createElement('style');
+    st.id = 'overlapSpinStyle';
+    st.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+  }
+
+  popup.style.display = 'flex';
+  document.body.style.overflow = 'hidden'; // prevent background scroll
+
+  const resetBtns = () => {
+    Object.entries(labelMap).forEach(([m, label]) => {
+      const b = document.getElementById(btnMap[m]);
+      if (b) { b.disabled = false; b.textContent = label; }
+    });
+    result.style.display = 'none';
+    result.innerHTML = '';
+  };
+
+  try {
+    const tracker  = window.stockTracker;
+    const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+    const symbols  = allItems.map(i => i.symbol.toUpperCase());
+
+    const calcStats = (item) => tracker.calculateTransactionStats(
+      JSON.parse(JSON.stringify(item.transactions||[])), item.price||0
+    );
+
+    // ── Pre-compute a LEAN summary — avoids bloating the prompt ──────────
+    const holdings = allItems.map(item => {
+      const st  = calcStats(item);
+      const val = (st.totalSharesOwned||0) * (item.price||0);
+      return { symbol: item.symbol, value: val };
+    }).filter(h => h.value > 0);
+    const totalVal = holdings.reduce((s,h)=>s+h.value, 0);
+
+    // Bucket every symbol into a category
+    const categorize = (sym) => {
+      if (['VOO','IVV','SPY','FXAIX','SPLG','SWPPX'].includes(sym))          return 'S&P 500 ETF';
+      if (['VTI','ITOT','FSKAX','FZROX','SWTSX'].includes(sym))              return 'Total Market ETF';
+      if (['QQQ','QQQM'].includes(sym))                                       return 'Nasdaq-100 ETF';
+      if (['VGT','FTEC','IYW','XLK'].includes(sym))                          return 'Tech Sector ETF';
+      if (['SCHG','VUG','IVW','VOOG','SPYG','MGK'].includes(sym))            return 'US Growth ETF';
+      if (['SOXX','SMH','FSELX','PSI'].includes(sym))                        return 'Semiconductor ETF';
+      if (['SCHD','VYM','DVY','HDV'].includes(sym))                          return 'Dividend ETF';
+      if (['VXUS','IXUS','VEA','EFA'].includes(sym))                         return 'Intl Developed ETF';
+      if (['VWO','EEM','IEMG','SPEM'].includes(sym))                         return 'Emerging Markets ETF';
+      if (['BND','AGG','FXNAX','TLT','IEF','VGSH','SHY'].includes(sym))     return 'Bond ETF';
+      if (['VNQ','IYR','SCHH','FREL'].includes(sym))                         return 'Real Estate ETF';
+      if (['GLD','IAU','SLV','PDBC'].includes(sym))                          return 'Commodity ETF';
+      if (['TSLL','NVDL','TQQQ','SOXL','UPRO'].includes(sym))               return 'Leveraged ETF';
+      return 'Individual Stock';
+    };
+
+    // Category totals
+    const catMap = {};
+    holdings.forEach(h => {
+      const cat = categorize(h.symbol);
+      catMap[cat] = (catMap[cat]||{total:0, symbols:[]});
+      catMap[cat].total += h.value;
+      catMap[cat].symbols.push(h.symbol);
+    });
+
+    // Top 15 holdings by value only (not all 58)
+    const top15 = holdings
+      .sort((a,b)=>b.value-a.value)
+      .slice(0,15)
+      .map(h=>`${h.symbol} ${(h.value/totalVal*100).toFixed(1)}%`)
+      .join(', ');
+
+    const catSummary = Object.entries(catMap)
+      .sort((a,b)=>b[1].total-a[1].total)
+      .map(([cat,d])=>`${cat} (${(d.total/totalVal*100).toFixed(0)}%): ${d.symbols.join(',')}`)
+      .join('\n');
+
+    // Identical overlaps — just the pairs, short
+    const identicalHits = [];
+    OVERLAP_DB.identicalGroups.forEach(g => {
+      const m = symbols.filter(s=>g.symbols.includes(s));
+      if (m.length>=2) identicalHits.push(m.join('=') + ' [same ' + g.name + ']');
+    });
+    const shadowHits = [];
+    OVERLAP_DB.shadowGroups.forEach(g => {
+      if (g.pairedWith) {
+        const a=symbols.filter(s=>g.symbols.includes(s));
+        const b=symbols.filter(s=>g.pairedWith.includes(s));
+        if (a.length&&b.length) shadowHits.push(a.join(',') + ' overlaps ' + b.join(','));
+      } else {
+        const m=symbols.filter(s=>g.symbols.includes(s));
+        if (m.length>=2) shadowHits.push(m.join('+'));
+      }
+    });
+
+    // ── Tight base context — under 400 tokens ──────────────────────────────
+    const baseContext =
+`Total: $${Math.round(totalVal).toLocaleString()} | ${holdings.length} positions
+Top 15 by weight: ${top15}
+Category breakdown:
+${catSummary}
+Redundancies: ${identicalHits.join('; ')||'none'}
+Shadow overlap: ${shadowHits.join('; ')||'none'}`;
+
+    const prompts = {
+
+      cleanup:
+`You are a portfolio efficiency advisor. Portfolio data:
+${baseContext}
+
+Write 4 complete paragraphs:
+P1 — Redundancy problem: which exact tickers duplicate each other and why that wastes money
+P2 — What to sell: specific tickers to eliminate with dollar amounts from the data above
+P3 — What to keep and why each earns its place
+P4 — The simplified portfolio: recommend a clean 4-6 position structure using actual tickers
+Be thorough. Use ticker symbols and dollar amounts throughout. Do not stop before completing all 4 paragraphs.`,
+
+      rebalance:
+`You are a portfolio strategist. Portfolio data:
+${baseContext}
+
+Write 4 complete paragraphs:
+P1 — Concentration problem: quantify how overweight this portfolio is in US tech/growth vs a healthy allocation
+P2 — Target allocation: recommended % split across US core / international / bonds / dividend / alternatives
+P3 — Specific actions: which tickers to trim (with $ amounts), which new ETFs to add (VXUS for international, BND for bonds, etc.)
+P4 — Timeline and priority: what to do first, second, third to get to the target allocation
+Use the actual tickers and dollar figures. Be concrete. Do not stop before completing all 4 paragraphs.`,
+
+      outlook:
+`You are a market strategist. Portfolio data:
+${baseContext}
+
+Write 4 complete paragraphs:
+P1 — Current positioning strengths: how this portfolio has benefited from recent AI/tech boom and what that means going forward
+P2 — 5-year risks: US concentration risk, tech valuation multiples, interest rate sensitivity, geopolitical risk from zero international exposure
+P3 — 10-year opportunities being missed: which asset classes and geographies are likely to outperform, and what this portfolio lacks
+P4 — One clear action: the single most impactful change to make this portfolio more resilient for the next decade
+Be specific to the actual holdings listed. Reference real macro trends. Do not stop before completing all 4 paragraphs.`,
+    };
+
+    const response = await fetch('https://ai-proxy.giolamchieu1975.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:8000, messages:[{role:'user',content:prompts[mode]}] })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    if (!text) throw new Error('No response');
+
+    const hdr = headerMap[mode];
+    // Strip markdown bold/italic/headers that Gemini sometimes adds
+    const cleanText = text
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/^#{1,3}\s+/gm, '')
+      .replace(/^[-*]\s+/gm, '')
+      .trim();
+
+    // Populate popup
+    const popupTitle = document.getElementById('overlapPopupTitle');
+    const popupBody  = document.getElementById('overlapPopupBody');
+    const popupFooter= document.getElementById('overlapPopupFooter');
+    if (popupTitle) {
+      popupTitle.style.color = hdr.color;
+      popupTitle.textContent = hdr.text;
+    }
+    if (popupBody) {
+      popupBody.innerHTML = cleanText
+        .split('\n\n')
+        .map(para => `<p style="margin:0 0 16px;">${para.split('\n').join('<br>')}</p>`)
+        .join('');
+    }
+    if (popupFooter) popupFooter.style.display = 'flex';
+    resetBtns();
+  } catch(e) {
+    const popupBody  = document.getElementById('overlapPopupBody');
+    const popupTitle = document.getElementById('overlapPopupTitle');
+    if (popupTitle) { popupTitle.style.color='#e74c3c'; popupTitle.textContent='Error'; }
+    if (popupBody)  popupBody.innerHTML = `<div style="color:#e74c3c;">AI unavailable: ${e.message}</div>`;
+    resetBtns();
+  }
+};
+
+window.closeOverlapPopup = function() {
+  const popup = document.getElementById('overlapAiPopup');
+  if (popup) popup.style.display = 'none';
+  document.body.style.overflow = '';
+};
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') window.closeOverlapPopup();
+});
+
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     FEATURE: STOCK CONCENTRATION — % of portfolio per individual stock
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+
+// ── ETF Look-Through Database ────────────────────────────────────────────
+const ETF_HOLDINGS = {
+  'VOO':  {'AAPL':7.0,'MSFT':6.3,'NVDA':5.9,'AMZN':3.7,'META':2.5,'GOOGL':2.0,'GOOG':1.7,'TSLA':1.7,'BRK.B':1.6,'AVGO':1.5,'JPM':1.4,'LLY':1.2,'UNH':1.1,'V':1.0,'XOM':1.0},
+  'IVV':  {'AAPL':7.0,'MSFT':6.3,'NVDA':5.9,'AMZN':3.7,'META':2.5,'GOOGL':2.0,'GOOG':1.7,'TSLA':1.7,'BRK.B':1.6,'AVGO':1.5,'JPM':1.4,'LLY':1.2,'UNH':1.1,'V':1.0,'XOM':1.0},
+  'SPY':  {'AAPL':7.0,'MSFT':6.3,'NVDA':5.9,'AMZN':3.7,'META':2.5,'GOOGL':2.0,'GOOG':1.7,'TSLA':1.7,'BRK.B':1.6,'AVGO':1.5,'JPM':1.4,'LLY':1.2,'UNH':1.1,'V':1.0,'XOM':1.0},
+  'SPLG': {'AAPL':7.0,'MSFT':6.3,'NVDA':5.9,'AMZN':3.7,'META':2.5,'GOOGL':2.0,'GOOG':1.7,'TSLA':1.7,'BRK.B':1.6,'AVGO':1.5,'JPM':1.4,'LLY':1.2,'UNH':1.1,'V':1.0,'XOM':1.0},
+  'FXAIX':{'AAPL':7.0,'MSFT':6.3,'NVDA':5.9,'AMZN':3.7,'META':2.5,'GOOGL':2.0,'GOOG':1.7,'TSLA':1.7,'BRK.B':1.6,'AVGO':1.5,'JPM':1.4,'LLY':1.2,'UNH':1.1,'V':1.0,'XOM':1.0},
+  'VTI':  {'AAPL':6.3,'MSFT':5.7,'NVDA':5.3,'AMZN':3.3,'META':2.3,'GOOGL':1.8,'GOOG':1.5,'TSLA':1.5,'BRK.B':1.5,'AVGO':1.4,'JPM':1.3,'LLY':1.1,'UNH':1.0,'V':0.9,'XOM':0.9},
+  'ITOT': {'AAPL':6.3,'MSFT':5.7,'NVDA':5.3,'AMZN':3.3,'META':2.3,'GOOGL':1.8,'GOOG':1.5,'TSLA':1.5,'BRK.B':1.5,'AVGO':1.4,'JPM':1.3,'LLY':1.1,'UNH':1.0,'V':0.9,'XOM':0.9},
+  'FSKAX':{'AAPL':6.3,'MSFT':5.7,'NVDA':5.3,'AMZN':3.3,'META':2.3,'GOOGL':1.8,'GOOG':1.5,'TSLA':1.5,'BRK.B':1.5,'AVGO':1.4,'JPM':1.3,'LLY':1.1,'UNH':1.0,'V':0.9,'XOM':0.9},
+  'QQQ':  {'AAPL':8.7,'MSFT':7.8,'NVDA':7.0,'AMZN':5.1,'META':4.5,'TSLA':3.1,'GOOGL':2.7,'GOOG':2.5,'AVGO':2.3,'COST':2.3,'NFLX':1.6,'TMUS':1.1,'AMD':1.0,'ADBE':0.9,'QCOM':0.9},
+  'QQQM': {'AAPL':8.7,'MSFT':7.8,'NVDA':7.0,'AMZN':5.1,'META':4.5,'TSLA':3.1,'GOOGL':2.7,'GOOG':2.5,'AVGO':2.3,'COST':2.3,'NFLX':1.6,'TMUS':1.1,'AMD':1.0,'ADBE':0.9,'QCOM':0.9},
+  'VGT':  {'AAPL':15.2,'MSFT':13.8,'NVDA':11.6,'AVGO':4.2,'ORCL':2.5,'AMD':1.8,'ADBE':1.7,'CRM':1.6,'ACN':1.5,'CSCO':1.4,'QCOM':1.4,'TXN':1.3,'AMAT':1.2,'INTC':0.8,'MU':0.8},
+  'FTEC': {'AAPL':15.2,'MSFT':13.8,'NVDA':11.6,'AVGO':4.2,'ORCL':2.5,'AMD':1.8,'ADBE':1.7,'CRM':1.6,'ACN':1.5,'CSCO':1.4,'QCOM':1.4,'TXN':1.3,'AMAT':1.2,'INTC':0.8,'MU':0.8},
+  'IYW':  {'AAPL':16.5,'MSFT':14.8,'NVDA':12.8,'AVGO':4.6,'ORCL':2.7,'AMD':1.9,'ADBE':1.8,'CRM':1.7,'ACN':1.6,'CSCO':1.5,'QCOM':1.5,'TXN':1.4,'AMAT':1.3,'INTC':0.9,'MU':0.9},
+  'XLK':  {'AAPL':21.5,'MSFT':20.8,'NVDA':8.0,'AVGO':4.8,'AMD':2.3,'ADBE':2.1,'CRM':2.0,'CSCO':1.9,'ACN':1.8,'TXN':1.7,'QCOM':1.6,'ORCL':1.5,'AMAT':1.4,'MU':1.1,'INTC':0.9},
+  'SCHG': {'AAPL':12.0,'MSFT':11.2,'NVDA':10.5,'AMZN':6.0,'META':4.9,'GOOGL':3.7,'GOOG':3.1,'TSLA':2.9,'COST':1.9,'NFLX':1.4,'LLY':1.2,'V':1.1,'MA':1.0,'UNH':0.9,'HD':0.8},
+  'VUG':  {'AAPL':11.7,'MSFT':10.8,'NVDA':10.1,'AMZN':5.8,'META':4.7,'GOOGL':3.5,'GOOG':2.9,'TSLA':2.8,'COST':1.8,'NFLX':1.3,'LLY':1.1,'V':1.0,'MA':0.9,'ADBE':0.8,'HD':0.8},
+  'IVW':  {'AAPL':11.4,'MSFT':10.5,'NVDA':9.8,'AMZN':5.6,'META':4.6,'GOOGL':3.4,'GOOG':2.8,'TSLA':2.7,'COST':1.7,'NFLX':1.2,'LLY':1.1,'V':1.0,'MA':0.9,'ADBE':0.8,'HD':0.8},
+  'SOXX': {'NVDA':11.8,'AVGO':11.4,'AMD':7.9,'QCOM':6.2,'TXN':5.9,'AMAT':5.7,'INTC':4.6,'MU':4.5,'MRVL':4.1,'LRCX':3.9,'KLAC':3.7,'ON':3.1,'MCHP':2.8,'ADI':2.7,'MPWR':2.3},
+  'SMH':  {'NVDA':24.2,'TSM':13.8,'AVGO':7.8,'ASML':5.2,'QCOM':4.6,'AMD':4.4,'TXN':4.0,'AMAT':3.7,'INTC':3.1,'MU':2.9,'LRCX':2.7,'KLAC':2.5,'ADI':2.3,'MRVL':2.1,'ON':1.9},
+  'FSELX':{'NVDA':21.8,'AVGO':9.2,'AMD':8.5,'QCOM':6.0,'TXN':5.6,'AMAT':5.2,'INTC':4.4,'MU':4.2,'MRVL':3.7,'LRCX':3.5,'KLAC':3.1,'ON':2.7,'ADI':2.5,'MCHP':2.3,'MPWR':2.1},
+  'SCHD': {'LMT':4.3,'HD':4.2,'ABBV':4.0,'KO':3.9,'PEP':3.7,'CVX':3.6,'PFE':3.5,'MRK':3.4,'IBM':3.3,'TXN':3.2,'AMGN':3.1,'VZ':3.0,'MMM':2.9,'UPS':2.8,'BMY':2.7},
+  'VYM':  {'JPM':3.9,'XOM':3.7,'JNJ':3.5,'PG':3.2,'HD':3.1,'CVX':3.0,'ABBV':2.9,'MRK':2.8,'KO':2.7,'PEP':2.6,'LLY':2.5,'PFE':2.4,'MCD':2.3,'VZ':2.2,'COP':2.1},
+  'VXUS': {'ASML':1.2,'TSM':1.1,'SAP':0.8,'NVO':0.8,'TM':0.7,'NESN':0.7,'SHEL':0.6,'ULVR':0.5,'MC':0.5,'ROG':0.5,'NOVN':0.4,'RMS':0.4,'AZN':0.4,'SIE':0.4,'NOVO.B':0.4},
+  'VNQ':  {'PLD':10.2,'AMT':8.8,'EQIX':8.1,'WELL':5.4,'SPG':4.8,'O':4.6,'PSA':4.4,'VICI':4.2,'EQR':3.8,'AVB':3.6,'DLR':3.4,'WY':3.2,'SUI':2.8,'IRM':2.6,'MAA':2.4},
+  'TSLL': {'TSLA':100},
+  'NVDL': {'NVDA':100},
+  'BND':{}, 'AGG':{}, 'TLT':{}, 'IEF':{}, 'VGSH':{}, 'SHY':{},
+  'JEPQ': {'NVDA':6.2,'MSFT':5.8,'AAPL':5.4,'AMZN':4.8,'META':4.2,'GOOGL':3.1,'TSLA':2.8,'AVGO':2.4,'BRK.B':2.1,'JPM':2.0},
+  'JEPI': {'MSFT':1.8,'AAPL':1.7,'AMZN':1.6,'NVDA':1.5,'JPM':1.5,'JNJ':1.4,'V':1.3,'PG':1.3,'MA':1.2,'HD':1.2},
+};
+
+window.renderTrueExposure = function() {
+  const el = document.getElementById('stExposureContent');
+  if (!el) return;
+  const tracker = window.stockTracker;
+  if (!tracker) {
+    el.innerHTML = '<p style="padding:16px;color:var(--text-secondary);text-align:center;">⏳ Portfolio not loaded yet.</p>';
+    return;
+  }
+
+  const fc = n => '$' + Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0});
+  const allItems = [...(tracker.stocks||[]), ...(tracker.mutualFunds||[])];
+
+  // ── Identify ETFs vs individual stocks ───────────────────────────────────
+  const KNOWN_ETFS = new Set([
+    'VOO','IVV','SPY','SPLG','FXAIX','VTI','ITOT','FSKAX','FZROX','SWTSX',
+    'QQQ','QQQM','VGT','FTEC','IYW','XLK','SCHG','VUG','IVW','VOOG','SPYG','MGK',
+    'SOXX','SMH','FSELX','PSI','SCHD','VYM','DVY','HDV','VTV','IVE',
+    'VXUS','IXUS','VEA','EFA','VWO','EEM','IEMG','SPEM',
+    'BND','AGG','FXNAX','TLT','IEF','VGSH','SHY','BIL','SGOV',
+    'VNQ','IYR','SCHH','FREL','GLD','IAU','SLV','PDBC',
+    'TSLL','NVDL','TQQQ','SOXL','UPRO','SSO','SPXL',
+    'JEPQ','JEPI','SCHB','SCHA','SCHF','SCHE','SCHI',
+  ]);
+  const isETF = item => {
+    const s = item.symbol.toUpperCase();
+    if (item.type==='mutualFund' || (s.length===5&&s.endsWith('X'))) return true;
+    return KNOWN_ETFS.has(s);
+  };
+
+  // ── Compute each item's current value ────────────────────────────────────
+  let totalPortVal = 0;
+  const positions = {}; // sym → { value, isEtf, item }
+  allItems.forEach(item => {
+    const txClone = JSON.parse(JSON.stringify(item.transactions||[]));
+    const st  = tracker.calculateTransactionStats(txClone, item.price||0);
+    const val = st.currentValue || 0;
+    if (val <= 0) return;
+    totalPortVal += val;
+    positions[item.symbol.toUpperCase()] = { value: val, isEtf: isETF(item), item };
+  });
+
+  if (totalPortVal === 0) {
+    el.innerHTML = '<p style="padding:16px;color:var(--text-secondary);text-align:center;">No holdings found.</p>';
+    return;
+  }
+
+  // ── Look-through: compute effective exposure per company ─────────────────
+  // Direct stocks counted at full value
+  // ETFs decomposed using known weights, remainder kept as "ETF basket"
+  const exposure = {}; // company → { direct, etfBreakdown:{etf:$}, etfUnmapped }
+
+  Object.entries(positions).forEach(([sym, pos]) => {
+    if (!pos.isEtf) {
+      // Individual stock — count directly
+      if (!exposure[sym]) exposure[sym] = { direct:0, etfBreakdown:{}, etfUnmapped:0 };
+      exposure[sym].direct += pos.value;
+    } else {
+      // ETF — look through holdings database
+      const etfData = ETF_HOLDINGS[sym];
+      if (etfData && Object.keys(etfData).length > 0) {
+        let mapped = 0;
+        Object.entries(etfData).forEach(([company, weightPct]) => {
+          const expVal = pos.value * (weightPct / 100);
+          if (!exposure[company]) exposure[company] = { direct:0, etfBreakdown:{}, etfUnmapped:0 };
+          exposure[company].etfBreakdown[sym] = (exposure[company].etfBreakdown[sym]||0) + expVal;
+          mapped += expVal;
+        });
+        // Unmapped remainder treated as "other ETF holdings"
+        const unmapped = pos.value - mapped;
+        if (unmapped > 0) {
+          const key = sym + '_OTHER';
+          exposure[key] = exposure[key] || { direct:0, etfBreakdown:{}, etfUnmapped:0 };
+          exposure[key].etfUnmapped += unmapped;
+        }
+      } else {
+        // Bond ETF or unknown — keep as whole
+        if (!exposure[sym]) exposure[sym] = { direct:0, etfBreakdown:{}, etfUnmapped:0 };
+        exposure[sym].direct += pos.value;
+      }
+    }
+  });
+
+  // Build sorted list — only show named companies (exclude _OTHER keys)
+  const combined = Object.entries(exposure)
+    .filter(([k]) => !k.endsWith('_OTHER'))
+    .map(([company, d]) => {
+      const etfTotal = Object.values(d.etfBreakdown).reduce((s,v)=>s+v, 0);
+      const total = d.direct + etfTotal;
+      return {
+        company,
+        direct:   d.direct,
+        etfTotal,
+        etfBreakdown: d.etfBreakdown,
+        total,
+        pct: (total / totalPortVal) * 100,
+        isDirectOnly: d.direct > 0 && etfTotal === 0,
+        hasDirect:    d.direct > 0,
+      };
+    })
+    .filter(h => h.total > 200)
+    .sort((a,b) => b.total - a.total);
+
+  const WARNING = 10.0;
+  const CAUTION  = 5.0;
+  const overExposed = combined.filter(h => h.pct >= WARNING);
+  const maxPct = combined.length > 0 ? combined[0].pct : 1;
+
+  // ── Render bars ───────────────────────────────────────────────────────────
+  const rows = combined.slice(0,40).map(h => {
+    const color = h.pct>=WARNING?'#e74c3c':h.pct>=CAUTION?'#f39c12':'var(--color-positive,#27ae60)';
+    const icon  = h.pct>=WARNING?'🔴':h.pct>=CAUTION?'🟡':'🟢';
+    const barW  = Math.min(100,(h.pct/Math.max(maxPct,1))*100);
+
+    // Bar: split into direct (blue) and ETF-derived (color) segments
+    const directBarW = Math.min(100,(h.direct/totalPortVal*100/Math.max(maxPct,1))*100);
+    const etfBarW    = Math.min(100-directBarW, (h.etfTotal/totalPortVal*100/Math.max(maxPct,1))*100);
+
+    // ETF breakdown string
+    const etfStr = Object.entries(h.etfBreakdown)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,5)
+      .map(([etf,val]) => `${etf} ${fc(val)}`)
+      .join(' · ');
+
+    return `
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;flex-wrap:wrap;gap:4px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span>${icon}</span>
+          <span style="font-weight:800;font-size:0.9rem;">${h.company}</span>
+          ${h.hasDirect && h.etfTotal>0
+            ? '<span style="font-size:0.6rem;padding:1px 6px;border-radius:999px;background:rgba(52,152,219,0.15);color:#3498db;">direct + ETF</span>'
+            : h.hasDirect
+              ? '<span style="font-size:0.6rem;padding:1px 6px;border-radius:999px;background:rgba(52,152,219,0.15);color:#3498db;">direct only</span>'
+              : '<span style="font-size:0.6rem;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,0.07);color:var(--text-secondary);">via ETFs</span>'}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-weight:800;color:${color};font-size:0.9rem;">${h.pct.toFixed(2)}%</span>
+          <span style="color:var(--text-secondary);font-size:0.75rem;min-width:70px;text-align:right;">${fc(h.total)}</span>
+        </div>
+      </div>
+      <!-- Stacked bar: blue=direct, colored=ETF-derived -->
+      <div style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden;display:flex;">
+        ${h.direct>0 ? `<div style="width:${directBarW.toFixed(1)}%;height:100%;background:#3498db;flex-shrink:0;"></div>` : ''}
+        ${h.etfTotal>0 ? `<div style="width:${etfBarW.toFixed(1)}%;height:100%;background:${color};opacity:0.75;flex-shrink:0;"></div>` : ''}
+      </div>
+      <!-- Detail line -->
+      <div style="font-size:0.62rem;color:var(--text-secondary);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px;">
+        ${h.direct>0 ? `<span style="color:#3498db;">Direct: ${fc(h.direct)}</span>` : ''}
+        ${h.etfTotal>0 ? `<span>Via ETFs (${fc(h.etfTotal)}): ${etfStr}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Coverage stats ────────────────────────────────────────────────────────
+  const etfSyms = Object.keys(positions).filter(s=>positions[s].isEtf);
+  const mappedEtfs = etfSyms.filter(s=>ETF_HOLDINGS[s]&&Object.keys(ETF_HOLDINGS[s]).length>0);
+  const directSyms = Object.keys(positions).filter(s=>!positions[s].isEtf);
+  const stockTotal = directSyms.reduce((s,sym)=>s+(positions[sym]?.value||0),0);
+  const etfTotalVal= etfSyms.reduce((s,sym)=>s+(positions[sym]?.value||0),0);
+
+  el.innerHTML = `
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;font-size:0.75rem;">
+      <span><span style="display:inline-block;width:12px;height:8px;background:#3498db;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Direct holding (matches your stock card value exactly)</span>
+      <span><span style="display:inline-block;width:12px;height:8px;background:#f39c12;border-radius:2px;opacity:0.75;margin-right:4px;vertical-align:middle;"></span>Additional exposure via ETF look-through</span>
+      <span style="color:var(--text-secondary);">Total bar = direct + ETF-derived combined</span>
+    </div>
+
+    <!-- Summary strip -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:14px;">
+      <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Total Portfolio</div>
+        <div style="font-size:1.1rem;font-weight:800;">${fc(totalPortVal)}</div>
+      </div>
+      <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Direct Stocks</div>
+        <div style="font-size:1.1rem;font-weight:800;">${fc(stockTotal)} <span style="font-size:0.72rem;color:var(--text-secondary);">${(stockTotal/totalPortVal*100).toFixed(1)}%</span></div>
+        <div style="font-size:0.65rem;color:var(--text-secondary);">${directSyms.length} positions</div>
+      </div>
+      <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;">
+        <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">ETFs & Funds</div>
+        <div style="font-size:1.1rem;font-weight:800;">${fc(etfTotalVal)} <span style="font-size:0.72rem;color:var(--text-secondary);">${(etfTotalVal/totalPortVal*100).toFixed(1)}%</span></div>
+        <div style="font-size:0.65rem;color:var(--text-secondary);">${mappedEtfs.length} of ${etfSyms.length} ETFs mapped</div>
+      </div>
+      <div style="padding:10px 14px;background:var(--bg-secondary);border:1px solid ${overExposed.length>0?'rgba(231,76,60,0.4)':'var(--border-color)'};border-radius:9px;">
+        <div style="font-size:0.6rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:3px;">Over 10% Exposure</div>
+        <div style="font-size:1.1rem;font-weight:800;color:${overExposed.length>0?'#e74c3c':'#27ae60'};">${overExposed.length} stock${overExposed.length!==1?'s':''}</div>
+        <div style="font-size:0.65rem;color:var(--text-secondary);">${overExposed.length>0?overExposed.map(h=>h.company).join(', '):'Well spread'}</div>
+      </div>
+    </div>
+
+    ${overExposed.length>0?`
+    <div style="padding:10px 14px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.3);border-radius:9px;margin-bottom:14px;font-size:0.78rem;color:#e74c3c;">
+      ⚠️ <strong>${overExposed.map(h=>`${h.company} ${h.pct.toFixed(1)}% (${fc(h.total)} total)`).join(' · ')}</strong>
+    </div>`:''}
+
+    <!-- Main chart -->
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);margin-bottom:8px;">
+      📊 Effective Exposure — Top 40 by Combined Direct + ETF Exposure
+    </div>
+    <div style="padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:9px;margin-bottom:14px;">
+      ${rows}
+    </div>
+
+    <p style="font-size:0.65rem;color:var(--text-secondary);margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);">
+      Blue bar = your direct holding (exact match to stock card). Colored bar = additional exposure through ETF look-through.
+      🔴 &gt;10% combined = concentrated · 🟡 5–10% = caution · 🟢 &lt;5% = healthy.
+      ETF weights from fund fact sheets (early 2026) — approximate. Not financial advice.
+    </p>`;
+};
+
+})();</script>
+
+<!-- Safety net: re-expose all panel functions globally after IIFE runs --></script>
+
 <!-- Safety net: re-expose all panel functions globally after IIFE runs -->
 <script>
 (function waitForPanels() {
@@ -14072,5 +16818,41 @@ window.stToggleNextDividend = async function(id, symbol) {
 })();
 </script>
 
+
+<script id="comma-input-formatter">
+// Live comma formatting for the retirement goal input
+(function() {
+  function attachCommaFormatter(inputId) {
+    var el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', function() {
+      var pos   = this.selectionStart;
+      var raw   = this.value.replace(/[^0-9]/g, '');
+      if (raw === '') { this.value = ''; return; }
+      var formatted = parseInt(raw, 10).toLocaleString('en-US');
+      var diff = formatted.length - this.value.length;
+      this.value = formatted;
+      // Restore cursor position accounting for added commas
+      try { this.setSelectionRange(pos + diff, pos + diff); } catch(e) {}
+    });
+    el.addEventListener('blur', function() {
+      var raw = this.value.replace(/[^0-9]/g, '');
+      if (raw) this.value = parseInt(raw, 10).toLocaleString('en-US');
+    });
+  }
+
+  // Attach when settings modal opens (button may not exist at DOMContentLoaded)
+  document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'settingsBtn' || e.target.closest('#settingsBtn'))) {
+      setTimeout(function() { attachCommaFormatter('modal-retirement-goal'); }, 100);
+    }
+  });
+
+  // Also try on DOMContentLoaded in case modal is already in DOM
+  document.addEventListener('DOMContentLoaded', function() {
+    attachCommaFormatter('modal-retirement-goal');
+  });
+})();
+</script>
 </body>
 </html>
