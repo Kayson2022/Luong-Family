@@ -5236,7 +5236,7 @@
                 <label>🔒 Auto-Lock (Idle Timeout)</label>
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                     <input type="checkbox" id="autoLockEnabled"
-                        onchange="localStorage.setItem('autolock_enabled', this.checked); window._resetLockTimer && window._resetLockTimer();"
+                        onchange="localStorage.setItem('al_enabled', this.checked); window._resetLockTimer && window._resetLockTimer();"
                         style="width:auto;">
                     <span style="font-size:0.85rem;">Lock app after inactivity</span>
                 </div>
@@ -5246,7 +5246,7 @@
                             document.getElementById('autoLockCustom').style.display='flex';
                         } else {
                             document.getElementById('autoLockCustom').style.display='none';
-                            localStorage.setItem('autolock_timeout', this.value);
+                            localStorage.setItem('al_timeout_secs', parseFloat(this.value) * 60);
                             window._resetLockTimer && window._resetLockTimer();
                         }"
                     style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--card-bg-color);color:var(--text-color);margin-bottom:6px;">
@@ -10347,62 +10347,125 @@ function injectTWRButton() {
 async function renderExDates() {
   const el = document.getElementById('exdateResults');
   if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">⏳ Fetching ex-dates from Finnhub…</div>';
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">⏳ Fetching ex-dates via Yahoo Finance…</div>';
 
-  const holdings = window.portfolioHoldings || [];
-  if (!holdings.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">No holdings found.</div>';
+  // Derive symbols from priceCache, fallback to transactions
+  const pc = window.priceCache || {};
+  let symbols = Object.keys(pc).filter(s => s && /^[A-Z]{1,6}$/.test(s));
+  if (!symbols.length && window.portfolioData && window.portfolioData.transactions) {
+    const s = new Set();
+    window.portfolioData.transactions.forEach(t => {
+      if (t.symbol && /^[A-Z]{1,6}$/.test(t.symbol.trim().toUpperCase()))
+        s.add(t.symbol.trim().toUpperCase());
+    });
+    symbols = [...s];
+  }
+  symbols = symbols.slice(0, 30);
+
+  if (!symbols.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">No holdings found. Wait for prices to load first.</div>';
     return;
   }
 
-  const symbols = [...new Set(
-    holdings.map(h => (h.symbol || '').toUpperCase().trim())
-             .filter(s => s && s.length <= 5 && !/\s/.test(s))
-  )].slice(0, 20);
-
-  const apiKey = typeof FINNHUB_API_KEY !== 'undefined' ? FINNHUB_API_KEY : '';
-  if (!apiKey) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger-color,#e74c3c);">⚠️ Finnhub API key not set. Add it in ⚙️ Settings.</div>';
-    return;
+  // Build shares map from transactions
+  const sharesMap = {};
+  if (window.portfolioData && window.portfolioData.transactions) {
+    window.portfolioData.transactions.forEach(t => {
+      const sym  = (t.symbol || '').toUpperCase().trim();
+      const type = (t.transactionType || '').toUpperCase();
+      const sh   = parseFloat(t.shares) || 0;
+      if (!sym) return;
+      if (type === 'BUY')  sharesMap[sym] = (sharesMap[sym] || 0) + sh;
+      if (type === 'SELL') sharesMap[sym] = (sharesMap[sym] || 0) - sh;
+    });
   }
 
-  const today = new Date();
-  const end   = new Date(today); end.setDate(end.getDate() + 90);
-  const fmt   = d => d.toISOString().split('T')[0];
-  const results = [];
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const todayMs  = today.getTime();
+  const fmt      = d => d.toISOString().split('T')[0];
+  const in90days = todayMs + 90  * 864e5;
+  const ago30    = todayMs - 30  * 864e5;
+  const results  = [];
 
-  await Promise.allSettled(symbols.map(async sym => {
-    try {
-      const r = await fetch(`https://finnhub.io/api/v1/stock/dividend2?symbol=${sym}&from=${fmt(today)}&to=${fmt(end)}&token=${apiKey}`);
-      if (!r.ok) return;
-      const data = await r.json();
-      (Array.isArray(data) ? data : []).forEach(d => {
-        if (d.exDate) results.push({ symbol: sym, exDate: d.exDate, payDate: d.payDate || '—', amount: d.amount != null ? d.amount : null });
-      });
-    } catch(_) {}
-  }));
+  // Fetch in batches of 5 to avoid hammering corsproxy
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const batches = [];
+  for (let i = 0; i < symbols.length; i += 5) batches.push(symbols.slice(i, i + 5));
+
+  for (const batch of batches) {
+    await Promise.allSettled(batch.map(async sym => {
+      try {
+        // Yahoo Finance v7 quote — returns exDividendDate (unix), dividendRate, trailingAnnualDividendRate
+        const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}&fields=exDividendDate,dividendDate,trailingAnnualDividendRate,dividendRate,forwardDividendRate`;
+        const r   = await fetch(url);
+        if (!r.ok) return;
+        const data = await r.json();
+        const q    = data?.quoteResponse?.result?.[0];
+        if (!q) return;
+
+        // Skip if no dividend data at all
+        const rate = q.dividendRate || q.forwardDividendRate ||
+                     (q.trailingAnnualDividendRate ? q.trailingAnnualDividendRate / 4 : null);
+        if (!rate) return;
+
+        const exTs = q.exDividendDate;
+        if (!exTs) return;
+        let exMs = exTs * 1000;
+
+        // If ex-date already passed, estimate next one by adding ~90 days (quarterly)
+        // Most dividends are quarterly; some monthly ETFs use ~30 days
+        const annualRate  = q.trailingAnnualDividendRate || (rate * 4);
+        const perPayment  = rate;
+        // Guess frequency: if per-payment is close to annual/12 → monthly, else quarterly
+        const isMonthly   = annualRate > 0 && (perPayment / (annualRate / 12)) > 0.7 && (perPayment / (annualRate / 12)) < 1.3;
+        const freqDays    = isMonthly ? 30 : 91;
+
+        // Advance ex-date until it's in the future or within past 30 days
+        while (exMs < ago30) exMs += freqDays * 864e5;
+
+        // Skip if still too far out
+        if (exMs > in90days) return;
+
+        const exDate  = fmt(new Date(exMs));
+        const payTs   = q.dividendDate;
+        // Estimate pay date as ~2 weeks after ex-date if Yahoo's payDate is stale
+        const payMs   = payTs ? payTs * 1000 : exMs + 14 * 864e5;
+        const payDate = fmt(new Date(payMs));
+
+        results.push({ symbol: sym, exDate, payDate, amount: rate, isPast: exMs < todayMs });
+      } catch(_) {}
+    }));
+    if (batches.indexOf(batch) < batches.length - 1) await delay(300);
+  }
 
   if (!results.length) {
-    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">No ex-dividend dates found in the next 90 days.<br><small>Growth stocks and some ETFs don't pay dividends.</small></div>`;
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-color-secondary);">
+      No dividend data found for your holdings.<br>
+      <small style="font-size:0.72rem;">TSLA, NVDA and other growth stocks don't pay dividends. For dividend payers like AVGO, DELL, SCHD — make sure prices are loaded first.</small>
+    </div>`;
     return;
   }
 
   results.sort((a, b) => a.exDate.localeCompare(b.exDate));
 
-  const in7  = fmt(new Date(today.getTime() + 7  * 864e5));
-  const in14 = fmt(new Date(today.getTime() + 14 * 864e5));
-  const holdingMap = {};
-  holdings.forEach(h => { holdingMap[(h.symbol||'').toUpperCase()] = h; });
+  const in7  = fmt(new Date(todayMs + 7  * 864e5));
+  const in14 = fmt(new Date(todayMs + 14 * 864e5));
 
   const rows = results.map(r => {
-    const h      = holdingMap[r.symbol] || {};
-    const shares = parseFloat(h.totalShares || 0);
-    const est    = r.amount != null && shares ? '$' + (r.amount * shares).toFixed(2) : '—';
-    const urgent = r.exDate <= in7 ? '#e74c3c' : r.exDate <= in14 ? '#e67e22' : 'var(--text-color-primary)';
-    const badge  = r.exDate <= in7 ? ' 🔴' : r.exDate <= in14 ? ' 🟡' : '';
-    return `<tr style="border-bottom:1px solid var(--border-color);">
+    const shares = Math.max(0, sharesMap[r.symbol] || 0);
+    const est    = r.amount != null && shares
+      ? '$' + (r.amount * shares).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
+      : '—';
+    const isPast  = r.isPast;
+    const urgent  = isPast ? 'var(--text-color-secondary)'
+                  : r.exDate <= in7 ? '#e74c3c'
+                  : r.exDate <= in14 ? '#e67e22'
+                  : 'var(--text-color-primary)';
+    const badge   = isPast ? ' ✓' : r.exDate <= in7 ? ' 🔴' : r.exDate <= in14 ? ' 🟡' : '';
+    const estNote = isPast ? '<span style="font-size:0.65rem;color:var(--text-color-secondary);"> (est. next)</span>' : '';
+    return `<tr style="border-bottom:1px solid var(--border-color);${isPast ? 'opacity:0.65;' : ''}">
       <td style="padding:9px 8px;font-weight:700;">${r.symbol}</td>
-      <td style="padding:9px 8px;color:${urgent};font-weight:${r.exDate <= in14 ? '700' : '400'};">${r.exDate}${badge}</td>
+      <td style="padding:9px 8px;color:${urgent};font-weight:${!isPast && r.exDate <= in14 ? '700' : '400'};">${r.exDate}${badge}${estNote}</td>
       <td style="padding:9px 8px;color:var(--text-color-secondary);">${r.payDate}</td>
       <td style="padding:9px 8px;text-align:right;">${r.amount != null ? '$' + r.amount.toFixed(4) : '—'}</td>
       <td style="padding:9px 8px;text-align:right;color:var(--success-color,#27ae60);font-weight:700;">${est}</td>
@@ -10422,7 +10485,9 @@ async function renderExDates() {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div style="margin-top:8px;font-size:0.7rem;color:var(--text-color-secondary);">Next 90 days · ${results.length} event${results.length !== 1 ? 's' : ''} · Finnhub</div>`;
+    <div style="margin-top:8px;font-size:0.7rem;color:var(--text-color-secondary);">
+      ${results.length} dividend payer${results.length !== 1 ? 's' : ''} · Yahoo Finance · ✓ = estimated next date based on frequency · 🔴 within 7 days · 🟡 within 14 days
+    </div>`;
 }
 window.renderExDates = renderExDates;
 
