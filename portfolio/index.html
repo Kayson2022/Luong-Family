@@ -5,6 +5,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5270,7 +5271,10 @@
                 </div>
                 <small>Blurs app and requires a 4-digit PIN after inactivity. PIN is set on first lock.</small>
                 <div style="margin-top:8px;">
-                    <button class="btn btn-danger" onclick="resetAutoLockPin()" style="width:100%;background:#e67e22;margin-top:6px;">🔑 Reset PIN</button>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+                        <button class="btn" onclick="testAutoLock()" style="background:#3498db;color:#fff;border:none;">🔒 Test Lock Now</button>
+                        <button class="btn btn-danger" onclick="resetAutoLockPin()" style="background:#e67e22;">🔑 Reset PIN</button>
+                    </div>
                 </div>
             </div>
 
@@ -10216,227 +10220,277 @@ window.syncToNetWorthTimeline = async function() {
 };
 </script>
 
-<!-- Auto-Lock Overlay -->
-<div id="autoLockOverlay" style="display:none;position:fixed;inset:0;z-index:99999;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  background:rgba(0,0,0,0.6);
-  display:none;align-items:center;justify-content:center;flex-direction:column;">
-  <div style="background:var(--card-bg-color);border:1px solid var(--border-color);
-    border-radius:16px;padding:40px 36px;width:100%;max-width:340px;text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-    <div style="font-size:2.5rem;margin-bottom:12px;">🔒</div>
-    <div style="font-size:1.2rem;font-weight:700;margin-bottom:6px;color:var(--text-color);">Session Locked</div>
-    <div style="font-size:0.82rem;color:var(--text-color-secondary);margin-bottom:24px;">
-      Enter your PIN to continue
+<!-- AUTO-LOCK OVERLAY -->
+<div id="alOverlay" style="display:none;position:fixed;inset:0;z-index:99999;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <div style="background:var(--card-bg-color);border:1px solid var(--border-color);border-radius:16px;padding:36px 32px;width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:2.5rem;margin-bottom:10px;">🔒</div>
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text-color);margin-bottom:4px;" id="alTitle">Session Locked</div>
+    <div style="font-size:0.82rem;color:var(--text-color-secondary);margin-bottom:20px;" id="alSubtitle">Enter your PIN to continue</div>
+
+    <!-- PIN dots -->
+    <div style="display:flex;justify-content:center;gap:14px;margin-bottom:20px;">
+      <div id="alDot0" style="width:14px;height:14px;border-radius:50%;background:var(--border-color);transition:background 0.2s;"></div>
+      <div id="alDot1" style="width:14px;height:14px;border-radius:50%;background:var(--border-color);transition:background 0.2s;"></div>
+      <div id="alDot2" style="width:14px;height:14px;border-radius:50%;background:var(--border-color);transition:background 0.2s;"></div>
+      <div id="alDot3" style="width:14px;height:14px;border-radius:50%;background:var(--border-color);transition:background 0.2s;"></div>
     </div>
-    <div id="lockPinDots" style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;">
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
-      <div class="pin-dot"></div>
+
+    <!-- PIN pad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+      <button onclick="alPress(1)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">1</button>
+      <button onclick="alPress(2)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">2</button>
+      <button onclick="alPress(3)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">3</button>
+      <button onclick="alPress(4)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">4</button>
+      <button onclick="alPress(5)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">5</button>
+      <button onclick="alPress(6)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">6</button>
+      <button onclick="alPress(7)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">7</button>
+      <button onclick="alPress(8)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">8</button>
+      <button onclick="alPress(9)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">9</button>
+      <button style="visibility:hidden;"></button>
+      <button onclick="alPress(0)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">0</button>
+      <button onclick="alBackspace()" style="padding:14px;font-size:1.2rem;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-color);color:var(--text-color);cursor:pointer;">⌫</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
-      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n => `
-        <button onclick="lockPinPress('${n}')"
-          style="padding:14px;font-size:1.1rem;font-weight:700;border-radius:10px;
-          border:1px solid var(--border-color);background:var(--bg-color);
-          color:var(--text-color);cursor:pointer;transition:background 0.15s;"
-          ${n==='' ? 'disabled style="visibility:hidden"' : ''}>
-          ${n}
-        </button>`).join('')}
+
+    <div id="alError" style="font-size:0.78rem;color:#e74c3c;min-height:18px;margin-bottom:10px;"></div>
+    <!-- EmailJS reset flow -->
+    <div id="alResetSection" style="display:none;margin-top:6px;">
+      <div style="font-size:0.75rem;color:#aaa;margin-bottom:8px;" id="alResetMsg">Enter the 6-digit code sent to your email.</div>
+      <input id="alResetCode" type="text" inputmode="numeric" maxlength="6"
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid #444;background:#111;color:#fff;font-size:1.1rem;text-align:center;letter-spacing:6px;box-sizing:border-box;margin-bottom:8px;"
+        placeholder="——————">
+      <button onclick="alVerifyCode()" style="width:100%;padding:10px;background:#3498db;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">Verify Code</button>
+      <a onclick="alCancelReset()" style="display:block;font-size:0.7rem;color:#888;cursor:pointer;text-decoration:underline;margin-top:8px;">Cancel — go back</a>
     </div>
-    <div id="lockPinError" style="font-size:0.78rem;color:#e74c3c;min-height:20px;margin-top:4px;"></div>
-    <div style="margin-top:16px;font-size:0.65rem;color:var(--text-color-secondary);">
-      <a onclick="lockForgotPin()" style="cursor:pointer;color:var(--text-color-secondary);">Forgot PIN? Reset</a>
+    <!-- Keypad (shown when NOT in reset flow) -->
+    <div id="alKeypadSection">
+      <a onclick="alForgotPin()" style="font-size:0.7rem;color:#888;cursor:pointer;text-decoration:underline;">Forgot PIN? Reset via email</a>
     </div>
   </div>
 </div>
 
-<style>
-.pin-dot {
-  width:12px;height:12px;border-radius:50%;
-  background:var(--border-color);border:2px solid var(--border-color);
-  transition:background 0.2s;
-}
-.pin-dot.filled { background:var(--primary-color,#3498db); border-color:var(--primary-color,#3498db); }
-#autoLockOverlay.active { display:flex !important; }
-</style>
-
 <script>
-// ── IDLE AUTO-LOCK ───────────────────────────────────────────────
 (function() {
-  const LOCK_KEY     = 'autolock_pin';
-  const TIMEOUT_KEY  = 'autolock_timeout';
-  const LOCK_ENABLED = 'autolock_enabled';
-  const DEFAULT_MINS = 10;
+  var PIN_KEY      = 'al_pin';
+  var TIMEOUT_KEY  = 'al_timeout_secs';
+  var ENABLED_KEY  = 'al_enabled';
+  var DEFAULT_SECS = 600;
+  var entry        = '';
+  var locked       = false;
+  var timer        = null;
+  var setting      = false;
+  var resetCode    = null;
 
-  let lockTimer   = null;
-  let pinEntry    = '';
-  let isLocked    = false;
+  var EJS_SVC  = 'service_9jnoib6';
+  var EJS_TPL  = 'template_wbsgl1q';
+  var EJS_KEY  = 'I15gJm9MKxGRBd9CQ';
+  var RESET_TO = 'khanhjunkemails@gmail.com';
 
   function getTimeoutMs() {
-    const mins = parseFloat(localStorage.getItem(TIMEOUT_KEY) || DEFAULT_MINS);
-    return mins * 60 * 1000;
+    return parseFloat(localStorage.getItem(TIMEOUT_KEY) || DEFAULT_SECS) * 1000;
   }
-
   function isEnabled() {
-    return localStorage.getItem(LOCK_ENABLED) !== 'false';
+    return localStorage.getItem(ENABLED_KEY) !== 'false';
   }
-
   function getPin() {
-    return localStorage.getItem(LOCK_KEY) || null;
+    return localStorage.getItem(PIN_KEY) || null;
   }
-
+  function updateDots() {
+    for (var i = 0; i < 4; i++) {
+      var d = document.getElementById('alDot' + i);
+      if (d) d.style.background = i < entry.length ? '#3498db' : 'var(--border-color)';
+    }
+  }
+  function showKeypad(show) {
+    var kp = document.getElementById('alKeypadSection');
+    var rs = document.getElementById('alResetSection');
+    var dotsRow = document.querySelector('#alOverlay [style*="display:flex;justify-content:center;gap:14px"]');
+    var grid    = document.querySelector('#alOverlay [style*="grid-template-columns:repeat(3,1fr)"]');
+    if (kp) kp.style.display = show ? 'block' : 'none';
+    if (rs) rs.style.display = show ? 'none'  : 'block';
+    if (dotsRow) dotsRow.style.display = show ? 'flex' : 'none';
+    if (grid)    grid.style.display    = show ? 'grid' : 'none';
+  }
   function lock() {
-    if (isLocked || !isEnabled() || !getPin()) return;
-    isLocked = true;
-    document.getElementById('autoLockOverlay').classList.add('active');
-    pinEntry = '';
+    if (locked || !isEnabled()) return;
+    locked  = true; entry = '';
+    setting = !getPin();
+    resetCode = null;
+    showKeypad(true);
+    var t = document.getElementById('alTitle');
+    var s = document.getElementById('alSubtitle');
+    var e = document.getElementById('alError');
+    if (t) t.textContent = setting ? 'Set Your PIN' : 'Session Locked';
+    if (s) s.textContent = setting ? 'Choose a 4-digit PIN' : 'Enter your PIN to continue';
+    if (e) e.textContent = '';
     updateDots();
+    var o = document.getElementById('alOverlay');
+    if (o) o.style.display = 'flex';
   }
-
   function unlock() {
-    isLocked = false;
-    document.getElementById('autoLockOverlay').classList.remove('active');
-    document.getElementById('lockPinError').textContent = '';
-    pinEntry = '';
+    locked = false; setting = false; entry = ''; resetCode = null;
+    showKeypad(true);
     updateDots();
+    var o = document.getElementById('alOverlay');
+    if (o) o.style.display = 'none';
     resetTimer();
   }
-
   function resetTimer() {
-    clearTimeout(lockTimer);
-    if (!isEnabled() || !getPin()) return;
-    lockTimer = setTimeout(lock, getTimeoutMs());
+    clearTimeout(timer);
+    if (isEnabled()) timer = setTimeout(lock, getTimeoutMs());
   }
-
-  function updateDots() {
-    const dots = document.querySelectorAll('.pin-dot');
-    dots.forEach((d, i) => {
-      d.classList.toggle('filled', i < pinEntry.length);
-    });
-  }
-
-  window.lockPinPress = function(val) {
-    if (val === '⌫') {
-      pinEntry = pinEntry.slice(0, -1);
-      updateDots();
+  window.alPress = function(num) {
+    if (entry.length >= 4) return;
+    entry += String(num);
+    updateDots();
+    var e = document.getElementById('alError');
+    if (e) e.textContent = '';
+    if (entry.length === 4) {
+      if (setting) {
+        localStorage.setItem(PIN_KEY, entry);
+        setTimeout(unlock, 300);
+      } else if (entry === getPin()) {
+        setTimeout(unlock, 200);
+      } else {
+        if (e) e.textContent = 'Incorrect PIN. Try again.';
+        setTimeout(function() { entry = ''; updateDots(); }, 600);
+      }
+    }
+  };
+  window.alBackspace = function() { entry = entry.slice(0, -1); updateDots(); };
+  window.alForgotPin = function() {
+    var msg = document.getElementById('alResetMsg');
+    var inp = document.getElementById('alResetCode');
+    var t   = document.getElementById('alTitle');
+    var s   = document.getElementById('alSubtitle');
+    if (msg) msg.textContent = 'Sending code to your email…';
+    if (inp) inp.value = '';
+    showKeypad(false);
+    if (t) t.textContent = 'PIN Reset';
+    if (s) s.textContent = 'Check your email for the code';
+    resetCode = String(Math.floor(100000 + Math.random() * 900000));
+    try {
+      if (typeof emailjs === 'undefined') throw new Error('EmailJS not loaded');
+      emailjs.init(EJS_KEY);
+      emailjs.send(EJS_SVC, EJS_TPL, {
+        to_email:     RESET_TO,
+        name:         '401k App',
+        email:        RESET_TO,
+        title:        '401k App — PIN Reset Code',
+        subject:      '401k App — PIN Reset Code',
+        message:      'PIN Reset Code: ' + resetCode,
+        record_count: 'PIN RESET',
+        backup_date:  new Date().toLocaleString(),
+        backup_json:  '🔐 Your PIN reset code is:\n\n  ' + resetCode + '\n\nEnter this code in the app to set a new PIN.\nExpires in 10 minutes.'
+      }).then(function() {
+        if (msg) msg.textContent = 'Code sent to ' + RESET_TO + '. Enter it below:';
+      }, function(err) {
+        if (msg) msg.textContent = '⚠️ Email failed. Try again.';
+        resetCode = null;
+        console.error('EmailJS error:', err);
+      });
+    } catch(e) {
+      if (msg) msg.textContent = '⚠️ EmailJS not available.';
+      resetCode = null;
+    }
+    setTimeout(function() { resetCode = null; }, 10 * 60 * 1000);
+  };
+  window.alVerifyCode = function() {
+    var inp = document.getElementById('alResetCode');
+    var msg = document.getElementById('alResetMsg');
+    var entered = inp ? inp.value.trim() : '';
+    if (!resetCode) {
+      if (msg) msg.textContent = '⚠️ Code expired. Click "Forgot PIN?" again.';
       return;
     }
-    if (val === '' || pinEntry.length >= 4) return;
-    pinEntry += val;
+    if (entered === resetCode) {
+      localStorage.removeItem(PIN_KEY);
+      resetCode = null;
+      entry = ''; setting = true;
+      showKeypad(true);
+      var t = document.getElementById('alTitle');
+      var s = document.getElementById('alSubtitle');
+      var e = document.getElementById('alError');
+      if (t) t.textContent = 'Set New PIN';
+      if (s) s.textContent = 'Choose a 4-digit PIN';
+      if (e) e.textContent = '';
+      updateDots();
+    } else {
+      if (msg) msg.textContent = '❌ Incorrect code. Try again.';
+      if (inp) inp.value = '';
+    }
+  };
+  window.alCancelReset = function() {
+    resetCode = null;
+    entry = '';
+    setting = !getPin();
+    showKeypad(true);
+    var t = document.getElementById('alTitle');
+    var s = document.getElementById('alSubtitle');
+    var e = document.getElementById('alError');
+    if (t) t.textContent = setting ? 'Set Your PIN' : 'Session Locked';
+    if (s) s.textContent = setting ? 'Choose a 4-digit PIN' : 'Enter your PIN to continue';
+    if (e) e.textContent = '';
     updateDots();
-
-    if (pinEntry.length === 4) {
-      const stored = getPin();
-      if (!stored) {
-        // Setting PIN for first time
-        localStorage.setItem(LOCK_KEY, pinEntry);
-        unlock();
-        showToast('✓ PIN set! App will lock after ' + (parseInt(localStorage.getItem(TIMEOUT_KEY) || DEFAULT_MINS)) + ' min of inactivity.');
-      } else if (pinEntry === stored) {
-        unlock();
-      } else {
-        document.getElementById('lockPinError').textContent = '✗ Incorrect PIN. Try again.';
-        pinEntry = '';
-        updateDots();
-        // Shake animation
-        const overlay = document.querySelector('#autoLockOverlay > div');
-        overlay.style.animation = 'shake 0.3s ease';
-        setTimeout(() => overlay.style.animation = '', 400);
-      }
-    }
   };
-
-  window.lockForgotPin = function() {
-    if (confirm('Reset your PIN? You will need to set a new one next time the app locks.')) {
-      localStorage.removeItem(LOCK_KEY);
-      unlock();
-    }
-  };
-
-  // Add shake animation
-  const style = document.createElement('style');
-  style.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}';
-  document.head.appendChild(style);
-
-  // Expose for settings modal
+  window.alLockNow = lock;
+  window._alReset  = resetTimer;
   window._resetLockTimer = resetTimer;
-
-  window.setAutoLockCustom = function() {
-    const val  = parseFloat(document.getElementById('autoLockCustomVal').value);
-    const unit = document.getElementById('autoLockCustomUnit').value;
-    if (!val || val <= 0) { alert('Enter a valid number'); return; }
-    const mins = unit === 'seconds' ? val / 60 : val;
-    localStorage.setItem('autolock_timeout', mins);
-    window._resetLockTimer && window._resetLockTimer();
-    alert('Auto-lock set to ' + val + ' ' + unit + '!');
-  };
-
+  window.testAutoLock = function() { lock(); };
   window.resetAutoLockPin = function() {
     if (confirm('Reset your PIN?')) {
-      localStorage.removeItem('autolock_pin');
-      alert('PIN reset. You will set a new one next time the app locks.');
+      localStorage.removeItem(PIN_KEY);
+      alert('PIN cleared. Click Test Lock Now to set a new one.');
     }
   };
-
+  window.setAutoLockCustom = function() {
+    var val  = parseFloat(document.getElementById('autoLockCustomVal').value);
+    var unit = document.getElementById('autoLockCustomUnit').value;
+    if (!val || val <= 0) { alert('Enter a valid number.'); return; }
+    var secs = unit === 'seconds' ? val : val * 60;
+    localStorage.setItem(TIMEOUT_KEY, secs);
+    window._resetLockTimer();
+    alert('Auto-lock set to ' + val + ' ' + unit + '. Test it with the button below.');
+  };
   window.handleAutoLockChange = function(val) {
     if (val === 'custom') {
-      document.getElementById('autoLockCustom').style.display = 'flex';
+      document.getElementById('autoLockCustom').style.display = 'block';
     } else {
       document.getElementById('autoLockCustom').style.display = 'none';
-      localStorage.setItem('autolock_timeout', val);
-      window._resetLockTimer && window._resetLockTimer();
+      localStorage.setItem(TIMEOUT_KEY, parseFloat(val) * 60);
+      window._resetLockTimer();
     }
   };
-  window._lockTimer = lockTimer;
-
-  // Listen for activity
-  ['mousedown','mousemove','keydown','touchstart','scroll','click'].forEach(evt => {
-    document.addEventListener(evt, resetTimer, { passive: true });
+  window.handleAutoLockEnabled = function(checked) {
+    localStorage.setItem(ENABLED_KEY, checked);
+    if (checked) resetTimer();
+    else clearTimeout(timer);
+  };
+  ['mousedown','mousemove','keydown','touchstart','scroll','click'].forEach(function(ev) {
+    document.addEventListener(ev, resetTimer, {passive:true});
   });
-
-  // Inject settings when modal opens
-  const origOpenSettings = window.openSettingsModal;
-  if (origOpenSettings) {
+  window.addEventListener('load', function() { setTimeout(resetTimer, 3000); });
+  var origOpen = window.openSettingsModal;
+  if (typeof origOpen === 'function') {
     window.openSettingsModal = function() {
-      origOpenSettings();
-      setTimeout(injectLockSettings, 100);
+      origOpen();
+      setTimeout(function() {
+        var cb  = document.getElementById('autoLockEnabled');
+        var sel = document.getElementById('autoLockTimeout');
+        if (cb)  cb.checked = isEnabled();
+        if (sel && localStorage.getItem(TIMEOUT_KEY)) {
+          var stored = parseFloat(localStorage.getItem(TIMEOUT_KEY));
+          var mins   = stored / 60;
+          if      (mins === 1)  sel.value = '1';
+          else if (mins === 5)  sel.value = '5';
+          else if (mins === 10) sel.value = '10';
+          else if (mins === 15) sel.value = '15';
+          else if (mins === 30) sel.value = '30';
+          else sel.value = 'custom';
+        }
+      }, 200);
     };
-  } else {
-    // Try to hook into settings modal open
-    const observer = new MutationObserver(() => {
-      const modal = document.getElementById('settingsModal');
-      if (modal && modal.style.display !== 'none') {
-        injectLockSettings();
-      }
-    });
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['style'] });
-  }
-
-  // Start timer on load
-  window.addEventListener('load', () => {
-    // Restore checkbox + select state
-    setTimeout(() => {
-      const cb  = document.getElementById('autoLockEnabled');
-      const sel = document.getElementById('autoLockTimeout');
-      if (cb)  cb.checked  = isEnabled();
-      if (sel) sel.value   = localStorage.getItem(TIMEOUT_KEY) || '10';
-    }, 500);
-    setTimeout(resetTimer, 2000);
-  });
-
-  function showToast(msg) {
-    const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2ecc71;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:99998;font-weight:600;';
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
   }
 })();
 </script>
-
 </body>
 </html>
-
-
