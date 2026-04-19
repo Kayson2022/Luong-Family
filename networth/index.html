@@ -1051,6 +1051,8 @@ window.addEventListener('load', function() {
     if (cb) cb.checked = localStorage.getItem('al_enabled_networth') !== 'false';
 });
 </script>
+<!-- alLockNow global stub — defined here so the button always works regardless of script load order -->
+<script>function alLockNow(){if(window._alLockNowFn)window._alLockNowFn();}</script>
 <!-- AUTO-LOCK OVERLAY: networth -->
 <div id="alOverlay" style="display:none;position:fixed;inset:0;z-index:99999;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
   <div style="background:#1a1a2e;border:1px solid #333;border-radius:16px;padding:36px 32px;width:300px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
@@ -1259,6 +1261,7 @@ window.addEventListener('load', function() {
     updateDots();
   };
   window.alLockNow = lock;
+  window._alLockNowFn = lock;
   window._alReset  = resetTimer;
   window._resetLockTimer = resetTimer;
   ['mousedown','mousemove','keydown','touchstart','scroll','click'].forEach(function(ev) {
