@@ -1,0 +1,1112 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Luong Family · $3M Journey</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --bg:       #060a06;
+    --surface:  #0d140d;
+    --surface2: #111c11;
+    --border:   #1a2e1a;
+    --green:    #00e676;
+    --green2:   #00c853;
+    --amber:    #ffd600;
+    --red:      #ff5252;
+    --cyan:     #00e5ff;
+    --ink:      #e8f5e9;
+    --ink2:     #81c784;
+    --ink3:     #4a7a4a;
+    --mono:     'Space Mono', monospace;
+    --serif:    'DM Serif Display', serif;
+    --goal:     3000000;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,230,118,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,230,118,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    color: var(--green);
+    line-height: 1.1;
+  }
+
+  .logo span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    letter-spacing: 4px;
+    color: var(--ink3);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .hstat {
+    text-align: right;
+  }
+
+  .hstat-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .hstat-label {
+    font-size: 0.6rem;
+    color: var(--ink3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  /* Progress bar */
+  .progress-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .progress-title {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--ink3);
+    text-transform: uppercase;
+  }
+
+  .progress-pct {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .progress-track {
+    height: 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green2), var(--green));
+    border-radius: 6px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: #fff;
+    opacity: 0.6;
+    border-radius: 2px;
+  }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--ink3);
+  }
+
+  /* Milestones */
+  .milestones {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .milestone {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: border-color 0.3s;
+  }
+
+  .milestone.achieved {
+    border-color: var(--green);
+    background: rgba(0,230,118,0.05);
+  }
+
+  .milestone.current {
+    border-color: var(--amber);
+    background: rgba(255,214,0,0.05);
+  }
+
+  .milestone-amount {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink3);
+    margin-bottom: 4px;
+  }
+
+  .milestone.achieved .milestone-amount { color: var(--green); }
+  .milestone.current .milestone-amount  { color: var(--amber); }
+
+  .milestone-date {
+    font-size: 0.6rem;
+    color: var(--ink3);
+    letter-spacing: 1px;
+  }
+
+  .milestone-icon { font-size: 1.1rem; margin-bottom: 4px; }
+
+  /* Chart card */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chart-title {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--ink3);
+    text-transform: uppercase;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 0.65rem;
+    color: var(--ink3);
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 300px;
+  }
+
+  /* Data entry */
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .entry-title {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--ink3);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .entry-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--ink3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus { border-color: var(--green); }
+
+  .btn-add {
+    padding: 10px 20px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+
+  .btn-add:hover { background: var(--green2); }
+
+  /* History table */
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .history-title {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--ink3);
+    text-transform: uppercase;
+  }
+
+  .btn-clear {
+    font-size: 0.65rem;
+    color: var(--red);
+    background: none;
+    border: 1px solid rgba(255,82,82,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: var(--mono);
+  }
+
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+
+  .history-table th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--ink3);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  .history-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(26,46,26,0.5);
+    color: var(--ink2);
+  }
+
+  .history-table td:first-child { color: var(--ink3); }
+  .history-table td.value { color: var(--green); font-weight: 700; }
+  .history-table td.change-pos { color: var(--green); }
+  .history-table td.change-neg { color: var(--red); }
+
+  .btn-del {
+    background: none;
+    border: none;
+    color: var(--ink3);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--mono);
+  }
+
+  .btn-del:hover { color: var(--red); }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 0.58rem;
+    letter-spacing: 2px;
+    color: var(--ink3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .stat-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .stat-sub {
+    font-size: 0.65rem;
+    color: var(--ink3);
+    margin-top: 3px;
+  }
+
+  /* Msg */
+  .msg {
+    font-size: 0.75rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .msg.ok  { background: rgba(0,230,118,0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .msg.err { background: rgba(255,82,82,0.1);  color: var(--red);   border: 1px solid rgba(255,82,82,0.3); }
+
+  footer {
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--ink3);
+    letter-spacing: 2px;
+    padding: 20px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .entry-form { grid-template-columns: 1fr 1fr; }
+    .btn-add { grid-column: 1/-1; }
+    .header-stats { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span>Luong Family</span>
+      $3M Journey
+    </div>
+    <div class="header-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="hLatest">$0</div>
+        <div class="hstat-label">Current Net Worth</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="hRemaining">$3,000,000</div>
+        <div class="hstat-label">To Goal</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="hEta">—</div>
+        <div class="hstat-label">Est. Year to $3M</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <div class="progress-title">Progress to $3,000,000</div>
+      <div class="progress-pct" id="progressPct">0.00%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-labels">
+      <span>$0</span>
+      <span>$750K</span>
+      <span>$1.5M</span>
+      <span>$2.25M</span>
+      <span>$3M 🎯</span>
+    </div>
+  </div>
+
+  <!-- Milestones -->
+  <div class="milestones" id="milestonesRow"></div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Net Worth Over Time</div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:var(--green)"></span>Actual</span>
+        <span><span class="legend-dot" style="background:var(--amber);opacity:0.7"></span>Projected</span>
+        <span><span class="legend-dot" style="background:var(--red);opacity:0.5"></span>$3M Goal</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="netWorthChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Entry form -->
+  <div class="entry-card">
+    <div class="entry-title">➕ Add Monthly Entry</div>
+    <div class="entry-form">
+      <div class="form-group">
+        <label>Date (YYYY-MM)</label>
+        <input type="month" id="entryDate">
+      </div>
+      <div class="form-group">
+        <label>Net Worth ($)</label>
+        <input type="number" id="entryValue" placeholder="e.g. 1510000" step="1000">
+      </div>
+      <button class="btn-add" onclick="addEntry()">+ Add</button>
+    </div>
+    <div class="msg" id="entryMsg"></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-card">
+    <div class="history-header">
+      <div class="history-title">📋 Entry History</div>
+      <button class="btn-clear" onclick="clearAll()">Clear All</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>DATE</th>
+            <th>NET WORTH</th>
+            <th>CHANGE</th>
+            <th>vs GOAL</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:8px;"><button onclick="alLockNow()" style="background:none;border:1px solid var(--border);color:var(--ink3);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.72rem;letter-spacing:1px;">🔒 Lock</button></div>
+<footer>LUONG FAMILY · $3M NET WORTH TRACKER · UPDATED MONTHLY</footer>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, initializeFirestore, memoryLocalCache } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const GOAL      = 3_000_000;
+const MILESTONES= [500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000];
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAFnNTpbZc1K8Z_CwEFgCBfdK_rW2-ZlRg",
+    authDomain: "smart-retirement-tracker.firebaseapp.com",
+    projectId: "smart-retirement-tracker",
+    storageBucket: "smart-retirement-tracker.appspot.com",
+    messagingSenderId: "798740254583",
+    appId: "1:798740254583:web:5d0835f78daa7f86fa9b72"
+};
+
+const app  = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+let db, auth, userId;
+try {
+    db = initializeFirestore(app, { localCache: memoryLocalCache() });
+} catch(e) {
+    db = getFirestore(app);
+}
+auth = getAuth(app);
+
+let chart = null;
+let _cachedData = [];
+
+// ── Auth ──────────────────────────────────────────────────────────
+function showStatus(msg, col) {
+  const el = document.getElementById('authStatus');
+  if (el) { el.textContent = msg; el.style.color = col || 'var(--ink3)'; }
+}
+
+async function initAuth() {
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      userId = user.uid;
+      showStatus(user.isAnonymous ? '🔒 Anonymous session' : '✓ Signed in: ' + (user.email || user.displayName), 'var(--green)');
+      subscribeData();
+    } else {
+      try {
+        await signInAnonymously(auth);
+      } catch(e) {
+        showStatus('Auth failed: ' + e.message, 'var(--red)');
+      }
+    }
+  });
+}
+
+async function signInGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    showStatus('Sign in failed: ' + e.message, 'var(--red)');
+  }
+}
+window.signInGoogle = signInGoogle;
+
+// ── Data ─────────────────────────────────────────────────────────
+function subscribeData() {
+  if (!db || !userId) return;
+  const q = query(collection(db, 'users', userId, 'networth'), orderBy('date', 'asc'));
+  onSnapshot(q, snap => {
+    _cachedData = snap.docs.map(d => d.data()).sort((a,b) => a.date.localeCompare(b.date));
+    render(_cachedData);
+  });
+}
+
+function load() { return _cachedData; }
+
+async function saveEntry(date, value) {
+  if (!db || !userId) { alert('Not connected to Firebase yet. Please wait a moment.'); return; }
+  const ref = doc(db, 'users', userId, 'networth', date);
+  await setDoc(ref, { date, value, updated_at: new Date().toISOString() });
+}
+
+async function removeEntry(date) {
+  if (!db || !userId) return;
+  await deleteDoc(doc(db, 'users', userId, 'networth', date));
+}
+
+async function clearAllEntries() {
+  if (!db || !userId) return;
+  const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const all = await getDocs(collection(db, 'users', userId, 'networth'));
+  await Promise.all(all.docs.map(d => deleteDoc(d.ref)));
+}
+
+function fmt(n) {
+  if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)     return '$' + (n/1_000).toFixed(1) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+
+function fmtFull(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+// ── Add entry ────────────────────────────────────────────────────
+async function addEntry() {
+  const dateEl = document.getElementById('entryDate');
+  const valEl  = document.getElementById('entryValue');
+  const msg    = document.getElementById('entryMsg');
+  const date   = dateEl.value;
+  const value  = parseFloat(valEl.value);
+
+  if (!date || isNaN(value) || value <= 0) {
+    showMsg('Please enter a valid date and net worth value.', 'err');
+    return;
+  }
+
+  try {
+    await saveEntry(date, value);
+    valEl.value = '';
+    showMsg('Entry saved! Syncing across all devices...', 'ok');
+  } catch(e) {
+    showMsg('Save failed: ' + e.message, 'err');
+  }
+}
+
+async function deleteEntry(date) {
+  await removeEntry(date);
+}
+window.deleteEntry = deleteEntry;
+
+async function clearAll() {
+  if (!confirm('Clear all net worth history? This cannot be undone.')) return;
+  await clearAllEntries();
+}
+
+function showMsg(text, type) {
+  const msg = document.getElementById('entryMsg');
+  msg.textContent = text;
+  msg.className   = 'msg ' + type;
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 3000);
+}
+
+// ── Project future ───────────────────────────────────────────────
+function project(data) {
+  if (data.length < 2) return [];
+  const last = data[data.length - 1];
+  const first = data[0];
+  const months = (new Date(last.date + '-01') - new Date(first.date + '-01')) / (1000*60*60*24*30.5);
+  if (months <= 0) return [];
+  const monthlyGrowth = Math.pow(last.value / first.value, 1 / months) - 1;
+  if (monthlyGrowth <= 0) return [];
+
+  const projected = [];
+  let current = last.value;
+  let d = new Date(last.date + '-01');
+  const maxMonths = 240; // 20 years max
+
+  for (let i = 0; i < maxMonths; i++) {
+    d.setMonth(d.getMonth() + 1);
+    current *= (1 + monthlyGrowth);
+    const ym = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    projected.push({ date: ym, value: Math.round(current) });
+    if (current >= GOAL) break;
+  }
+  return projected;
+}
+
+function estimateYear(data) {
+  const proj = project(data);
+  const hit  = proj.find(p => p.value >= GOAL);
+  return hit ? hit.date.split('-')[0] : null;
+}
+
+// ── Render ───────────────────────────────────────────────────────
+function render(data) {
+  data = data || load();
+  const latest = data.length > 0 ? data[data.length-1].value : 0;
+  const pct    = Math.min(100, (latest / GOAL) * 100);
+  const eta    = estimateYear(data);
+
+  // Header stats
+  document.getElementById('hLatest').textContent    = fmt(latest);
+  document.getElementById('hRemaining').textContent = fmt(Math.max(0, GOAL - latest));
+  document.getElementById('hEta').textContent       = eta || '—';
+
+  // Progress bar
+  document.getElementById('progressPct').textContent  = pct.toFixed(2) + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  // Milestones
+  renderMilestones(data, latest);
+
+  // Stats
+  renderStats(data, latest);
+
+  // Chart
+  renderChart(data);
+
+  // History table
+  renderHistory(data);
+
+  // Set today as default date
+  const today = new Date();
+  const ym = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+  if (!document.getElementById('entryDate').value) {
+    document.getElementById('entryDate').value = ym;
+  }
+}
+
+function renderMilestones(data, latest) {
+  const row = document.getElementById('milestonesRow');
+  row.innerHTML = MILESTONES.map(m => {
+    const achieved = latest >= m;
+    const isCurrent = !achieved && latest >= m * 0.8;
+    const hit = data.find(d => d.value >= m);
+    const cls = achieved ? 'achieved' : isCurrent ? 'current' : '';
+    const icon = achieved ? '🏆' : isCurrent ? '🎯' : '○';
+    const dateStr = hit ? hit.date : '—';
+    return `<div class="milestone ${cls}">
+      <div class="milestone-icon">${icon}</div>
+      <div class="milestone-amount">${fmt(m)}</div>
+      <div class="milestone-date">${dateStr}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(data, latest) {
+  const grid = document.getElementById('statsGrid');
+  if (data.length < 2) {
+    grid.innerHTML = '<div class="stat-card"><div class="stat-label">Add 2+ entries to see stats</div></div>';
+    return;
+  }
+
+  const first = data[0];
+  const last  = data[data.length-1];
+  const prev  = data.length >= 2 ? data[data.length-2] : null;
+  const months= (new Date(last.date+'-01') - new Date(first.date+'-01')) / (1000*60*60*24*30.5);
+  const totalGain = last.value - first.value;
+  const totalPct  = ((totalGain / first.value) * 100).toFixed(1);
+  const monthlyAvg = months > 0 ? totalGain / months : 0;
+  const moChange   = prev ? last.value - prev.value : 0;
+  const moChangePct= prev ? ((moChange/prev.value)*100).toFixed(1) : 0;
+  const remaining  = Math.max(0, GOAL - last.value);
+  const monthlyGrowth = months > 0 ? Math.pow(last.value/first.value, 1/months) - 1 : 0;
+  const moNeeded = monthlyGrowth > 0 ? Math.log(GOAL/last.value) / Math.log(1+monthlyGrowth) : null;
+
+  const stats = [
+    { label: 'Monthly Avg Growth', val: fmt(monthlyAvg), sub: 'since start' },
+    { label: 'Last Month Change',  val: (moChange>=0?'+':'')+fmt(moChange), sub: (moChangePct>=0?'+':'')+moChangePct+'%', col: moChange>=0?'var(--green)':'var(--red)' },
+    { label: 'Total Growth',       val: '+'+fmt(totalGain), sub: '+'+totalPct+'% since '+first.date },
+    { label: 'Monthly Rate',       val: (monthlyGrowth*100).toFixed(2)+'%', sub: 'avg monthly return' },
+    { label: 'Months to $3M',      val: moNeeded ? Math.round(moNeeded)+'mo' : '—', sub: 'at current rate' },
+    { label: 'Entries Logged',     val: data.length, sub: 'monthly snapshots' },
+  ];
+
+  grid.innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-val" style="${s.col?'color:'+s.col:''}">${s.val}</div>
+      <div class="stat-sub">${s.sub || ''}</div>
+    </div>`).join('');
+}
+
+function renderChart(data) {
+  const proj = project(data);
+
+  const actualLabels = data.map(d => d.date);
+  const actualValues = data.map(d => d.value);
+  const projLabels   = proj.map(d => d.date);
+  const projValues   = proj.map(d => d.value);
+
+  // Goal line across all dates
+  const allLabels = [...new Set([...actualLabels, ...projLabels])].sort();
+  const goalValues = allLabels.map(() => GOAL);
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  const ctx = document.getElementById('netWorthChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: allLabels,
+      datasets: [
+        {
+          label: 'Net Worth',
+          data: allLabels.map(l => {
+            const d = data.find(d => d.date === l);
+            return d ? d.value : null;
+          }),
+          borderColor: '#00e676',
+          backgroundColor: 'rgba(0,230,118,0.08)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#00e676',
+          pointBorderColor: '#060a06',
+          pointBorderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          spanGaps: false,
+        },
+        {
+          label: 'Projected',
+          data: allLabels.map(l => {
+            const d = proj.find(d => d.date === l);
+            return d ? d.value : null;
+          }),
+          borderColor: 'rgba(255,214,0,0.5)',
+          backgroundColor: 'rgba(255,214,0,0.03)',
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+          spanGaps: false,
+        },
+        {
+          label: '$3M Goal',
+          data: goalValues,
+          borderColor: 'rgba(255,82,82,0.4)',
+          borderWidth: 1,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d140d',
+          borderColor: '#1a2e1a',
+          borderWidth: 1,
+          titleColor: '#4a7a4a',
+          bodyColor: '#e8f5e9',
+          titleFont: { family: "'Space Mono', monospace", size: 11 },
+          bodyFont:  { family: "'Space Mono', monospace", size: 12 },
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y === null) return null;
+              return ` ${ctx.dataset.label}: ${fmtFull(ctx.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(26,46,26,0.5)' },
+          ticks: {
+            color: '#4a7a4a',
+            font: { family: "'Space Mono', monospace", size: 10 },
+            maxTicksLimit: 12,
+          }
+        },
+        y: {
+          grid: { color: 'rgba(26,46,26,0.5)' },
+          ticks: {
+            color: '#4a7a4a',
+            font: { family: "'Space Mono', monospace", size: 10 },
+            callback: v => fmt(v),
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderHistory(data) {
+  const body = document.getElementById('historyBody');
+  if (data.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink3);padding:20px;text-align:center;">No entries yet. Add your first monthly net worth above.</td></tr>';
+    return;
+  }
+
+  const rows = [...data].reverse().map((d, i, arr) => {
+    const prev   = arr[i+1];
+    const change = prev ? d.value - prev.value : null;
+    const changePct = prev ? ((change/prev.value)*100).toFixed(1) : null;
+    const vsGoal = ((d.value/GOAL)*100).toFixed(1);
+    const changeStr = change === null ? '—'
+      : (change>=0?'+':'-') + fmt(Math.abs(change)) + ' (' + (change>=0?'+':'') + changePct + '%)';
+    const changeCls = change === null ? '' : change >= 0 ? 'change-pos' : 'change-neg';
+
+    return `<tr>
+      <td>${d.date}</td>
+      <td class="value">${fmtFull(d.value)}</td>
+      <td class="${changeCls}">${changeStr}</td>
+      <td style="color:var(--ink3);">${vsGoal}%</td>
+      <td><button class="btn-del" onclick="deleteEntry('${d.date}')">✕</button></td>
+    </tr>`;
+  });
+
+  body.innerHTML = rows.join('');
+}
+
+// Add auth status + Google sign-in to UI
+document.addEventListener('DOMContentLoaded', () => {
+  const hint = document.querySelector('footer');
+  if (hint) {
+    const authDiv = document.createElement('div');
+    authDiv.style.cssText = 'text-align:center;font-size:0.6rem;color:var(--ink3);padding:8px;letter-spacing:1px;';
+    authDiv.innerHTML = '<span id="authStatus">Connecting to Firebase...</span> · <a onclick="signInGoogle()" style="color:var(--green);cursor:pointer;text-decoration:none;">Sign in with Google</a>';
+    hint.parentNode.insertBefore(authDiv, hint);
+  }
+});
+
+// Init Firebase auth — data loads automatically via onSnapshot
+initAuth();
+</script>
+
+<!-- AUTO-LOCK OVERLAY: networth -->
+<div id="alOverlay" style="display:none;position:fixed;inset:0;z-index:99999;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border:1px solid #333;border-radius:16px;padding:36px 32px;width:300px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="font-size:2.5rem;margin-bottom:10px;">🔒</div>
+    <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:4px;" id="alTitle">Session Locked</div>
+    <div style="font-size:0.82rem;color:#888;margin-bottom:20px;" id="alSubtitle">Enter your PIN to continue</div>
+    <div style="display:flex;justify-content:center;gap:14px;margin-bottom:20px;">
+      <div id="alDot0" style="width:14px;height:14px;border-radius:50%;background:#333;transition:background 0.2s;"></div>
+      <div id="alDot1" style="width:14px;height:14px;border-radius:50%;background:#333;transition:background 0.2s;"></div>
+      <div id="alDot2" style="width:14px;height:14px;border-radius:50%;background:#333;transition:background 0.2s;"></div>
+      <div id="alDot3" style="width:14px;height:14px;border-radius:50%;background:#333;transition:background 0.2s;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+      <button onclick="alPress(1)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">1</button>
+      <button onclick="alPress(2)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">2</button>
+      <button onclick="alPress(3)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">3</button>
+      <button onclick="alPress(4)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">4</button>
+      <button onclick="alPress(5)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">5</button>
+      <button onclick="alPress(6)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">6</button>
+      <button onclick="alPress(7)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">7</button>
+      <button onclick="alPress(8)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">8</button>
+      <button onclick="alPress(9)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">9</button>
+      <button style="visibility:hidden;"></button>
+      <button onclick="alPress(0)" style="padding:14px;font-size:1.2rem;font-weight:700;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">0</button>
+      <button onclick="alBackspace()" style="padding:14px;font-size:1.2rem;border-radius:10px;border:1px solid #333;background:#111;color:#fff;cursor:pointer;">⌫</button>
+    </div>
+    <div id="alError" style="font-size:0.78rem;color:#e74c3c;min-height:18px;margin-bottom:10px;"></div>
+    <a onclick="alResetPin()" style="font-size:0.7rem;color:#888;cursor:pointer;text-decoration:underline;">Forgot PIN? Reset</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  var PIN_KEY      = 'al_pin_networth';
+  var TIMEOUT_KEY  = 'al_timeout_networth';
+  var ENABLED_KEY  = 'al_enabled_networth';
+  var DEFAULT_SECS = 600;
+  var entry   = '';
+  var locked  = false;
+  var timer   = null;
+  var setting = false;
+
+  function getTimeoutMs() {
+    return parseFloat(localStorage.getItem(TIMEOUT_KEY) || DEFAULT_SECS) * 1000;
+  }
+  function isEnabled() {
+    return localStorage.getItem(ENABLED_KEY) !== 'false';
+  }
+  function getPin() {
+    return localStorage.getItem(PIN_KEY) || null;
+  }
+  function updateDots() {
+    for (var i = 0; i < 4; i++) {
+      var d = document.getElementById('alDot' + i);
+      if (d) d.style.background = i < entry.length ? '#3498db' : '#333';
+    }
+  }
+  function lock() {
+    if (locked || !isEnabled()) return;
+    locked  = true; entry = '';
+    setting = !getPin();
+    var t = document.getElementById('alTitle');
+    var s = document.getElementById('alSubtitle');
+    var e = document.getElementById('alError');
+    if (t) t.textContent = setting ? 'Set Your PIN' : 'Session Locked';
+    if (s) s.textContent = setting ? 'Choose a 4-digit PIN' : 'Enter your PIN to continue';
+    if (e) e.textContent = '';
+    updateDots();
+    var o = document.getElementById('alOverlay');
+    if (o) o.style.display = 'flex';
+  }
+  function unlock() {
+    locked = false; setting = false; entry = '';
+    updateDots();
+    var o = document.getElementById('alOverlay');
+    if (o) o.style.display = 'none';
+    resetTimer();
+  }
+  function resetTimer() {
+    clearTimeout(timer);
+    if (isEnabled()) timer = setTimeout(lock, getTimeoutMs());
+  }
+  window.alPress = function(num) {
+    if (entry.length >= 4) return;
+    entry += String(num);
+    updateDots();
+    var e = document.getElementById('alError');
+    if (e) e.textContent = '';
+    if (entry.length === 4) {
+      if (setting) {
+        localStorage.setItem(PIN_KEY, entry);
+        setTimeout(unlock, 300);
+      } else if (entry === getPin()) {
+        setTimeout(unlock, 200);
+      } else {
+        if (e) e.textContent = 'Incorrect PIN. Try again.';
+        setTimeout(function() { entry = ''; updateDots(); }, 600);
+      }
+    }
+  };
+  window.alBackspace = function() { entry = entry.slice(0,-1); updateDots(); };
+  window.alResetPin  = function() {
+    if (confirm('Reset PIN?')) {
+      localStorage.removeItem(PIN_KEY);
+      entry = ''; setting = true;
+      var t = document.getElementById('alTitle');
+      var s = document.getElementById('alSubtitle');
+      var e = document.getElementById('alError');
+      if (t) t.textContent = 'Set New PIN';
+      if (s) s.textContent = 'Choose a 4-digit PIN';
+      if (e) e.textContent = '';
+      updateDots();
+    }
+  };
+  window.alLockNow = lock;
+  window._alReset  = resetTimer;
+  ['mousedown','mousemove','keydown','touchstart','scroll','click'].forEach(function(ev) {
+    document.addEventListener(ev, resetTimer, {passive:true});
+  });
+  window.addEventListener('load', function() { setTimeout(resetTimer, 3000); });
+})();
+</script>
+</body>
+</html>
