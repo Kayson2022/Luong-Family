@@ -570,7 +570,37 @@
     </div>
   </div>
 
-  <div style="text-align:center;margin-bottom:8px;"><button onclick="alLockNow()" style="background:none;border:1px solid var(--border);color:var(--ink3);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.72rem;letter-spacing:1px;">🔒 Lock</button></div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+    <div style="font-size:0.65rem;letter-spacing:3px;color:var(--ink3);text-transform:uppercase;margin-bottom:12px;">🔒 Auto-Lock Settings</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <input type="checkbox" id="autoLockEnabled" onchange="handleAutoLockEnabled(this.checked)" style="width:auto;">
+        <span style="font-size:0.82rem;color:var(--ink2);">Lock after inactivity</span>
+    </div>
+    <select id="autoLockTimeout" onchange="handleAutoLockChange(this.value)"
+        style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);margin-bottom:8px;font-family:var(--mono);">
+        <option value="60">1 minute</option>
+        <option value="300">5 minutes</option>
+        <option value="600" selected>10 minutes</option>
+        <option value="900">15 minutes</option>
+        <option value="1800">30 minutes</option>
+        <option value="custom">Custom...</option>
+    </select>
+    <div id="autoLockCustom" style="display:none;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" id="autoLockCustomVal" min="1" step="1" value="1"
+                style="width:80px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:var(--mono);">
+            <select id="autoLockCustomUnit" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink);font-family:var(--mono);">
+                <option value="minutes" selected>minutes</option>
+                <option value="seconds">seconds</option>
+            </select>
+            <button onclick="setAutoLockCustom()" style="padding:8px 14px;background:var(--green);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:var(--mono);">Set</button>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="alLockNow()" style="padding:8px;background:var(--green);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:var(--mono);">🔒 Test Lock</button>
+        <button onclick="resetAutoLockPin()" style="padding:8px;background:transparent;color:var(--red);border:1px solid var(--red);border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:var(--mono);">🔑 Reset PIN</button>
+    </div>
+</div>
 <footer>LUONG FAMILY · $3M NET WORTH TRACKER · UPDATED MONTHLY</footer>
 </div>
 
@@ -986,6 +1016,40 @@ document.addEventListener('DOMContentLoaded', () => {
 initAuth();
 </script>
 
+<script>
+function handleAutoLockEnabled(checked) {
+    localStorage.setItem('al_enabled_networth', checked);
+    if (checked && window._alReset) window._alReset();
+}
+function handleAutoLockChange(val) {
+    if (val === 'custom') {
+        document.getElementById('autoLockCustom').style.display = 'block';
+    } else {
+        document.getElementById('autoLockCustom').style.display = 'none';
+        localStorage.setItem('al_timeout_networth', val);
+        if (window._alReset) window._alReset();
+    }
+}
+function setAutoLockCustom() {
+    var val  = parseFloat(document.getElementById('autoLockCustomVal').value);
+    var unit = document.getElementById('autoLockCustomUnit').value;
+    if (!val || val <= 0) { alert('Enter a valid number.'); return; }
+    var secs = unit === 'seconds' ? val : val * 60;
+    localStorage.setItem('al_timeout_networth', secs);
+    if (window._alReset) window._alReset();
+    alert('Auto-lock set to ' + val + ' ' + unit + '.');
+}
+function resetAutoLockPin() {
+    if (confirm('Reset your PIN?')) {
+        localStorage.removeItem('al_pin_networth');
+        alert('PIN reset. Click Test Lock to set a new one.');
+    }
+}
+window.addEventListener('load', function() {
+    var cb = document.getElementById('autoLockEnabled');
+    if (cb) cb.checked = localStorage.getItem('al_enabled_networth') !== 'false';
+});
+</script>
 <!-- AUTO-LOCK OVERLAY: networth -->
 <div id="alOverlay" style="display:none;position:fixed;inset:0;z-index:99999;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(0,0,0,0.65);align-items:center;justify-content:center;">
   <div style="background:#1a1a2e;border:1px solid #333;border-radius:16px;padding:36px 32px;width:300px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
