@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,7 +82,20 @@
 </style>
 </head>
 <body>
-<div class="wrapper">
+<!-- Auth gate -->
+<div id="authGate" style="display:none;position:fixed;inset:0;z-index:9999;background:#060a06;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#0d140d;border:1px solid #1a2e1a;border-radius:16px;padding:40px 32px;text-align:center;max-width:360px;width:90%;">
+    <div style="font-size:2rem;margin-bottom:12px;">🔐</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:1.8rem;color:#00e676;margin-bottom:8px;">$3M Journey</div>
+    <div style="font-size:0.75rem;color:#4a7a4a;letter-spacing:2px;margin-bottom:28px;">LUONG FAMILY · NET WORTH TRACKER</div>
+    <button onclick="signInWithGoogle()" style="width:100%;padding:12px 20px;background:#fff;color:#000;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Space Mono',monospace;">
+      <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px;"> Sign in with Google
+    </button>
+    <div id="authError" style="margin-top:12px;font-size:0.72rem;color:#ff5252;min-height:16px;"></div>
+  </div>
+</div>
+
+<div class="wrapper" id="mainApp" style="display:none;">
 
   <header>
     <div class="logo">
@@ -185,12 +199,12 @@
   </div>
 
   <footer>LUONG FAMILY · $3M NET WORTH TRACKER · AUTO-SYNCED FROM PORTFOLIO APPS</footer>
-</div>
+</div><!-- end mainApp -->
 
 <script type="module">
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, initializeFirestore, memoryLocalCache } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const GOAL       = 3_000_000;
 const MILESTONES = [500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000];
@@ -359,6 +373,7 @@ function subscribeHistory(db, userId) {
 // ── Main refresh ─────────────────────────────────────────────────
 async function refresh() {
     setStatus('Fetching latest portfolio data...', 'amber');
+    console.log('[3M] secureUserId:', secureUserId, 'k401UserId:', k401UserId);
 
     if (!secureUserId || !k401UserId) {
         setStatus('Waiting for authentication...', 'amber');
@@ -574,18 +589,53 @@ function renderHistory(data) {
 
 // ── Auth & init ──────────────────────────────────────────────────
 let secureReady = false, k401Ready = false;
+const provider = new GoogleAuthProvider();
+
+// Expose globally for debugging
+window._3m = { get secureUserId() { return secureUserId; }, get k401UserId() { return k401UserId; } };
+
+window.signInWithGoogle = async function() {
+    const errEl = document.getElementById('authError');
+    try {
+        console.log('[3M] Starting Google sign-in...');
+        await signInWithPopup(secureAuth, provider);
+    } catch(e) {
+        console.error('[3M] Sign-in error:', e.code, e.message);
+        if (errEl) errEl.textContent = 'Sign-in failed: ' + e.message;
+    }
+};
 
 onAuthStateChanged(secureAuth, async user => {
-    if (!user) { try { await signInAnonymously(secureAuth); } catch(e){} return; }
+    console.log('[3M] secureAuth state:', user ? 'signed in uid=' + user.uid : 'signed out');
+    if (!user) {
+        document.getElementById('authGate').style.display = 'flex';
+        document.getElementById('mainApp').style.display  = 'none';
+        return;
+    }
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainApp').style.display  = 'block';
     secureUserId = user.uid;
     secureReady  = true;
+    console.log('[3M] Secure app signed in:', secureUserId);
+    // Sign into 401k Firebase with same Google account
+    try {
+        await signInWithPopup(k401Auth, provider);
+    } catch(e) {
+        console.warn('[3M] 401k popup failed:', e.code, '— trying anonymous');
+        try { await signInAnonymously(k401Auth); } catch(e2) {
+            console.warn('[3M] 401k anonymous failed too:', e2.message);
+        }
+    }
     if (secureReady && k401Ready) { await refresh(); subscribeHistory(k401Db, k401UserId); }
 });
 
 onAuthStateChanged(k401Auth, async user => {
-    if (!user) { try { await signInAnonymously(k401Auth); } catch(e){} return; }
-    k401UserId = user.uid;
+    console.log('[3M] k401Auth state:', user ? 'signed in uid=' + user.uid : 'signed out');
+    if (!user) return;
+    // Always use the Google UID — both apps store data under same UID
+    k401UserId = secureUserId || user.uid;
     k401Ready  = true;
+    console.log('[3M] 401k signed in, using uid:', k401UserId);
     if (secureReady && k401Ready) { await refresh(); subscribeHistory(k401Db, k401UserId); }
 });
 
