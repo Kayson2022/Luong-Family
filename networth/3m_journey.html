@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Luong Family · $3M Journey</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Serif+Display&display=swap');
+  :root {
+    --bg:#060a06;--surface:#0d140d;--surface2:#111c11;--border:#1a2e1a;
+    --green:#00e676;--green2:#00c853;--amber:#ffd600;--red:#ff5252;
+    --cyan:#00e5ff;--ink:#e8f5e9;--ink2:#81c784;--ink3:#4a7a4a;
+    --mono:'Space Mono',monospace;--serif:'DM Serif Display',serif;--goal:3000000;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,230,118,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,230,118,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .wrapper{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:24px 20px;}
+  header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;flex-wrap:wrap;gap:16px;}
+  .logo{font-family:var(--serif);font-size:clamp(1.6rem,4vw,2.4rem);color:var(--green);line-height:1.1;}
+  .logo span{display:block;font-family:var(--mono);font-size:0.55rem;letter-spacing:4px;color:var(--ink3);margin-bottom:4px;text-transform:uppercase;}
+  .header-stats{display:flex;gap:20px;flex-wrap:wrap;}
+  .hstat{text-align:right;}
+  .hstat-val{font-size:1.4rem;font-weight:700;color:var(--green);line-height:1;}
+  .hstat-label{font-size:0.6rem;color:var(--ink3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+  .progress-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;}
+  .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .progress-title{font-size:0.65rem;letter-spacing:3px;color:var(--ink3);text-transform:uppercase;}
+  .progress-pct{font-size:1.6rem;font-weight:700;color:var(--green);}
+  .progress-track{height:12px;background:var(--surface2);border-radius:6px;overflow:hidden;margin-bottom:8px;position:relative;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--green2),var(--green));border-radius:6px;transition:width 1s cubic-bezier(.4,0,.2,1);position:relative;}
+  .progress-fill::after{content:'';position:absolute;right:0;top:0;height:100%;width:4px;background:#fff;opacity:0.6;border-radius:2px;}
+  .progress-labels{display:flex;justify-content:space-between;font-size:0.65rem;color:var(--ink3);}
+  .milestones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .milestone{flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;transition:border-color 0.3s;}
+  .milestone.achieved{border-color:var(--green);background:rgba(0,230,118,0.05);}
+  .milestone.current{border-color:var(--amber);background:rgba(255,214,0,0.05);}
+  .milestone-amount{font-size:0.9rem;font-weight:700;color:var(--ink3);margin-bottom:4px;}
+  .milestone.achieved .milestone-amount{color:var(--green);}
+  .milestone.current .milestone-amount{color:var(--amber);}
+  .milestone-date{font-size:0.6rem;color:var(--ink3);letter-spacing:1px;}
+  .milestone-icon{font-size:1.1rem;margin-bottom:4px;}
+
+  /* Live data banner */
+  .live-banner{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .live-item{display:flex;flex-direction:column;gap:4px;}
+  .live-label{font-size:0.58rem;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;}
+  .live-val{font-size:1.1rem;font-weight:700;color:var(--green);}
+  .live-sub{font-size:0.62rem;color:var(--ink3);}
+  .live-status{display:flex;align-items:center;gap:6px;font-size:0.62rem;color:var(--ink3);margin-bottom:8px;grid-column:1/-1;}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .chart-title{font-size:0.65rem;letter-spacing:3px;color:var(--ink3);text-transform:uppercase;}
+  .chart-legend{display:flex;gap:16px;font-size:0.65rem;color:var(--ink3);}
+  .legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;}
+  .chart-wrap{position:relative;height:300px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .stat-label{font-size:0.58rem;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;margin-bottom:6px;}
+  .stat-val{font-size:1.1rem;font-weight:700;color:var(--green);}
+  .stat-sub{font-size:0.65rem;color:var(--ink3);margin-top:3px;}
+
+  /* History */
+  .history-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;}
+  .history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .history-title{font-size:0.65rem;letter-spacing:3px;color:var(--ink3);text-transform:uppercase;}
+  .history-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+  .history-table th{text-align:left;padding:6px 10px;font-size:0.6rem;letter-spacing:2px;color:var(--ink3);border-bottom:1px solid var(--border);font-weight:400;}
+  .history-table td{padding:8px 10px;border-bottom:1px solid rgba(26,46,26,0.5);color:var(--ink2);}
+  .history-table td.value{color:var(--green);font-weight:700;}
+  .history-table td.change-pos{color:var(--green);}
+  .history-table td.change-neg{color:var(--red);}
+  .btn-refresh{font-size:0.65rem;color:var(--green);background:none;border:1px solid rgba(0,230,118,0.3);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:var(--mono);}
+  .btn-refresh:hover{background:rgba(0,230,118,0.1);}
+  footer{text-align:center;font-size:0.6rem;color:var(--ink3);letter-spacing:2px;padding:20px 0;border-top:1px solid var(--border);margin-top:20px;}
+  @media(max-width:600px){.header-stats{gap:12px;}.live-banner{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo">
+      <span>Luong Family</span>
+      $3M Journey
+    </div>
+    <div class="header-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="hLatest">$0</div>
+        <div class="hstat-label">Total Net Worth</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="hRemaining">$3,000,000</div>
+        <div class="hstat-label">To Goal</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="hEta">—</div>
+        <div class="hstat-label">Est. Year to $3M</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <div class="progress-title">Progress to $3,000,000</div>
+      <div class="progress-pct" id="progressPct">0.00%</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-labels">
+      <span>$0</span><span>$750K</span><span>$1.5M</span><span>$2.25M</span><span>$3M 🎯</span>
+    </div>
+  </div>
+
+  <!-- Milestones -->
+  <div class="milestones" id="milestonesRow"></div>
+
+  <!-- Live data breakdown -->
+  <div class="live-banner" id="liveBanner">
+    <div class="live-status">
+      <div class="live-dot" id="liveDot" style="background:var(--amber);animation:none;"></div>
+      <span id="liveStatusText">Connecting to your portfolio data...</span>
+      <button class="btn-refresh" onclick="refreshNow()" style="margin-left:auto;">🔄 Refresh</button>
+    </div>
+    <div class="live-item">
+      <div class="live-label">Brokerage + Roth IRA</div>
+      <div class="live-val" id="liveSecure">—</div>
+      <div class="live-sub">From Secure App</div>
+    </div>
+    <div class="live-item">
+      <div class="live-label">401(k)</div>
+      <div class="live-val" id="live401k">—</div>
+      <div class="live-sub">From 401k App</div>
+    </div>
+    <div class="live-item">
+      <div class="live-label">529 College</div>
+      <div class="live-val" id="live529">—</div>
+      <div class="live-sub">From 401k App</div>
+    </div>
+    <div class="live-item">
+      <div class="live-label">Combined Total</div>
+      <div class="live-val" id="liveCombined" style="color:var(--cyan);font-size:1.3rem;">—</div>
+      <div class="live-sub" id="liveLastUpdated">Not yet loaded</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Net Worth Over Time</div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:var(--green)"></span>Actual</span>
+        <span><span class="legend-dot" style="background:var(--amber);opacity:0.7"></span>Projected</span>
+        <span><span class="legend-dot" style="background:var(--red);opacity:0.5"></span>$3M Goal</span>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="netWorthChart"></canvas></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-card">
+    <div class="history-header">
+      <div class="history-title">📋 Snapshot History</div>
+      <span style="font-size:0.62rem;color:var(--ink3);">Auto-saved daily at market close</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>DATE</th><th>NET WORTH</th><th>BROKERAGE</th><th>401K</th><th>529</th><th>CHANGE</th><th>vs GOAL</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>LUONG FAMILY · $3M NET WORTH TRACKER · AUTO-SYNCED FROM PORTFOLIO APPS</footer>
+</div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, initializeFirestore, memoryLocalCache } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const GOAL       = 3_000_000;
+const MILESTONES = [500_000, 1_000_000, 1_500_000, 2_000_000, 2_500_000, 3_000_000];
+
+// ── Firebase configs for both apps ──────────────────────────────
+const SECURE_CONFIG = {
+    apiKey:            "AIzaSyB8wQ0-O2avYjRW7Wjtmiql03q1ikwhX7s",
+    authDomain:        "stocks-etfs-mutual.firebaseapp.com",
+    projectId:         "stocks-etfs-mutual",
+    storageBucket:     "stocks-etfs-mutual.firebasestorage.app",
+    messagingSenderId: "326474465163",
+    appId:             "1:326474465163:web:6d140efca04077ba8f1f98e"
+};
+
+const K401_CONFIG = {
+    apiKey:            "AIzaSyAFnNTpbZc1K8Z_CwEFgCBfdK_rW2-ZlRg",
+    authDomain:        "smart-retirement-tracker.firebaseapp.com",
+    projectId:         "smart-retirement-tracker",
+    storageBucket:     "smart-retirement-tracker.appspot.com",
+    messagingSenderId: "798740254583",
+    appId:             "1:798740254583:web:5d0835f78daa7f86fa9b72"
+};
+
+// 401k-only account types (not in Secure app)
+const K401_ACCOUNT_TYPES = ['401(k)', '529 College Saving'];
+
+let chart = null;
+let _history = []; // loaded from Firestore snapshot history
+
+// ── Init both Firebase apps ──────────────────────────────────────
+const secureApp = getApps().find(a => a.name === 'secure') || initializeApp(SECURE_CONFIG, 'secure');
+const k401App   = getApps().find(a => a.name === 'k401')   || initializeApp(K401_CONFIG,   'k401');
+
+let secureDb, k401Db, secureAuth, k401Auth;
+let secureUserId, k401UserId;
+
+try { secureDb = initializeFirestore(secureApp, { localCache: memoryLocalCache() }); }
+catch(e) { secureDb = getFirestore(secureApp); }
+
+try { k401Db = initializeFirestore(k401App, { localCache: memoryLocalCache() }); }
+catch(e) { k401Db = getFirestore(k401App); }
+
+secureAuth = getAuth(secureApp);
+k401Auth   = getAuth(k401App);
+
+// ── Format helpers ───────────────────────────────────────────────
+function fmt(n) {
+    if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M';
+    if (n >= 1_000)     return '$' + (n/1_000).toFixed(1) + 'K';
+    return '$' + Math.round(n).toLocaleString();
+}
+function fmtFull(n) {
+    return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+// ── Calculate value from transactions + priceCache ───────────────
+function calcValue(transactions, priceCache, filterAccounts) {
+    // Build holdings: symbol -> total shares
+    const holdings = {};
+    const accountType = {};
+    (transactions || []).forEach(t => {
+        const sym = (t.symbol || '').toUpperCase();
+        if (!sym) return;
+        if (filterAccounts && !filterAccounts.includes(t.accountType)) return;
+        if (!holdings[sym]) { holdings[sym] = 0; accountType[sym] = t.accountType; }
+        const shares = parseFloat(t.shares) || 0;
+        const txType = (t.transactionType || '').toUpperCase();
+        if (txType === 'BUY')  holdings[sym] += shares;
+        if (txType === 'SELL') holdings[sym] -= shares;
+    });
+
+    let total = 0;
+    Object.keys(holdings).forEach(sym => {
+        const shares = holdings[sym];
+        if (shares <= 0) return;
+        const cache = (priceCache || {})[sym] || {};
+        const price = cache.manualPrice || cache.currentPrice || 0;
+        total += shares * price;
+    });
+    return total;
+}
+
+// ── Fetch data from one app ──────────────────────────────────────
+// Secure app: data at users/{userId} (single doc), stocks/mutualFunds arrays
+async function fetchSecureData(userId, filterAccounts) {
+    try {
+        const snap = await getDoc(doc(secureDb, 'users', userId));
+        if (!snap.exists()) return { value: 0, ok: false };
+        const data = snap.data();
+        const stocks = data.stocks || [];
+        const funds  = data.mutualFunds || [];
+        let total = 0;
+        [...stocks, ...funds].forEach(item => {
+            const price = item.price || 0;
+            if (price <= 0) return;
+            // Calculate total shares from transactions
+            let shares = 0;
+            (item.transactions || []).forEach(t => {
+                const s = parseFloat(t.shares) || 0;
+                const type = (t.type || '').toLowerCase();
+                if (type === 'buy')  shares += s;
+                if (type === 'sell') shares -= s;
+            });
+            if (shares <= 0) return;
+            total += shares * price;
+        });
+        return { value: total, ok: true };
+    } catch(e) {
+        console.warn('fetchSecureData error:', e.message);
+        return { value: 0, ok: false };
+    }
+}
+
+// 401k app: data at users/{userId}/portfolio/portfolioData
+async function fetch401kData(userId, filterAccounts) {
+    try {
+        const [dataSnap, cacheSnap] = await Promise.all([
+            getDoc(doc(k401Db, 'users', userId, 'portfolio', 'portfolioData')),
+            getDoc(doc(k401Db, 'users', userId, 'portfolio', 'priceCache')),
+        ]);
+        const portfolioData = dataSnap.exists() ? dataSnap.data() : {};
+        const priceCache    = cacheSnap.exists() ? cacheSnap.data() : {};
+        const transactions  = portfolioData.transactions || [];
+        const value = calcValue(transactions, priceCache, filterAccounts);
+        return { value, ok: true };
+    } catch(e) {
+        console.warn('fetch401kData error:', e.message);
+        return { value: 0, ok: false };
+    }
+}
+
+// ── Save daily snapshot to Firestore ────────────────────────────
+async function saveSnapshot(db, userId, secureVal, k401Val, val529) {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+        await setDoc(
+            doc(db, 'users', userId, 'networth3m', today),
+            {
+                date:       today,
+                total:      secureVal + k401Val + val529,
+                secure:     secureVal,
+                k401:       k401Val,
+                col529:     val529,
+                updated_at: new Date().toISOString()
+            },
+            { merge: true }
+        );
+    } catch(e) {
+        console.warn('saveSnapshot error:', e.message);
+    }
+}
+
+// ── Load snapshot history ────────────────────────────────────────
+function subscribeHistory(db, userId) {
+    const q = query(collection(db, 'users', userId, 'networth3m'), orderBy('date', 'asc'));
+    onSnapshot(q, snap => {
+        _history = snap.docs.map(d => d.data()).sort((a,b) => a.date.localeCompare(b.date));
+        renderHistory(_history);
+        renderStats(_history);
+        renderChart(_history);
+        renderMilestones(_history, _history.length ? _history[_history.length-1].total : 0);
+        updateETA(_history);
+    }, e => console.warn('subscribeHistory error:', e.message));
+}
+
+// ── Main refresh ─────────────────────────────────────────────────
+async function refresh() {
+    setStatus('Fetching latest portfolio data...', 'amber');
+
+    if (!secureUserId || !k401UserId) {
+        setStatus('Waiting for authentication...', 'amber');
+        return;
+    }
+
+    // Fetch Secure app — all accounts
+    const secureResult = await fetchSecureData(secureUserId, null);
+
+    // Fetch 401k app — only 401k and 529
+    const k401Result   = await fetch401kData(k401UserId, ['401(k)']);
+    const col529Result = await fetch401kData(k401UserId, ['529 College Saving']);
+
+    const secureVal = secureResult.value;
+    const k401Val   = k401Result.value;
+    const val529    = col529Result.value;
+    const total     = secureVal + k401Val + val529;
+
+    if (total === 0 && !secureResult.ok) {
+        setStatus('Could not load portfolio data. Check console.', 'red');
+        return;
+    }
+
+    // Update live banner
+    document.getElementById('liveSecure').textContent   = fmtFull(secureVal);
+    document.getElementById('live401k').textContent     = fmtFull(k401Val);
+    document.getElementById('live529').textContent      = fmtFull(val529);
+    document.getElementById('liveCombined').textContent = fmtFull(total);
+    document.getElementById('liveLastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString('en-US', {timeZone:'America/Los_Angeles'}) + ' PT';
+
+    // Update header
+    document.getElementById('hLatest').textContent    = fmt(total);
+    document.getElementById('hRemaining').textContent = fmt(Math.max(0, GOAL - total));
+
+    // Update progress bar
+    const pct = Math.min(100, (total / GOAL) * 100);
+    document.getElementById('progressPct').textContent  = pct.toFixed(2) + '%';
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    // Save daily snapshot
+    await saveSnapshot(k401Db, k401UserId, secureVal, k401Val, val529);
+
+    setStatus('Live · synced from Secure App + 401k App', 'green');
+}
+
+window.refreshNow = refresh;
+
+function setStatus(msg, color) {
+    const dot  = document.getElementById('liveDot');
+    const text = document.getElementById('liveStatusText');
+    const cols = { green:'var(--green)', amber:'var(--amber)', red:'var(--red)' };
+    if (dot)  { dot.style.background = cols[color] || cols.amber; dot.style.animation = color === 'green' ? '' : 'none'; }
+    if (text) text.textContent = msg;
+}
+
+// ── Projections ──────────────────────────────────────────────────
+function project(data) {
+    if (data.length < 2) return [];
+    const last = data[data.length-1];
+    const first = data[0];
+    const months = (new Date(last.date) - new Date(first.date)) / (1000*60*60*24*30.5);
+    if (months <= 0) return [];
+    const monthlyGrowth = Math.pow(last.total / first.total, 1/months) - 1;
+    if (monthlyGrowth <= 0) return [];
+    const projected = [];
+    let current = last.total;
+    let d = new Date(last.date);
+    for (let i = 0; i < 240; i++) {
+        d.setMonth(d.getMonth()+1);
+        current *= (1 + monthlyGrowth);
+        const ym = d.toISOString().split('T')[0].substring(0,7);
+        projected.push({ date: ym, value: Math.round(current) });
+        if (current >= GOAL) break;
+    }
+    return projected;
+}
+
+function updateETA(data) {
+    const proj = project(data);
+    const hit  = proj.find(p => p.value >= GOAL);
+    document.getElementById('hEta').textContent = hit ? hit.date.split('-')[0] : '—';
+}
+
+// ── Render functions ─────────────────────────────────────────────
+function renderMilestones(data, latest) {
+    const row = document.getElementById('milestonesRow');
+    row.innerHTML = MILESTONES.map(m => {
+        const achieved  = latest >= m;
+        const isCurrent = !achieved && latest >= m * 0.8;
+        const hit = data.find(d => d.total >= m);
+        const cls = achieved ? 'achieved' : isCurrent ? 'current' : '';
+        const icon = achieved ? '🏆' : isCurrent ? '🎯' : '○';
+        return '<div class="milestone ' + cls + '">' +
+            '<div class="milestone-icon">' + icon + '</div>' +
+            '<div class="milestone-amount">' + fmt(m) + '</div>' +
+            '<div class="milestone-date">' + (hit ? hit.date.substring(0,7) : '—') + '</div>' +
+            '</div>';
+    }).join('');
+}
+
+function renderStats(data) {
+    const grid = document.getElementById('statsGrid');
+    if (data.length < 2) {
+        grid.innerHTML = '<div class="stat-card"><div class="stat-label">Add 2+ snapshots to see stats</div></div>';
+        return;
+    }
+    const first = data[0], last = data[data.length-1];
+    const prev  = data.length >= 2 ? data[data.length-2] : null;
+    const days  = (new Date(last.date) - new Date(first.date)) / (1000*60*60*24);
+    const months = days / 30.5;
+    const totalGain  = last.total - first.total;
+    const totalPct   = ((totalGain/first.total)*100).toFixed(1);
+    const monthlyAvg = months > 0 ? totalGain/months : 0;
+    const moChange   = prev ? last.total - prev.total : 0;
+    const moChangePct= prev ? ((moChange/prev.total)*100).toFixed(1) : 0;
+    const monthlyGrowth = months > 0 ? Math.pow(last.total/first.total, 1/months) - 1 : 0;
+    const moNeeded = monthlyGrowth > 0 ? Math.log(GOAL/last.total)/Math.log(1+monthlyGrowth) : null;
+
+    const stats = [
+        { label:'Avg Daily Growth',    val:fmt(totalGain/Math.max(1,days)),   sub:'since first snapshot' },
+        { label:'Last Change',         val:(moChange>=0?'+':'')+fmt(moChange), sub:(moChangePct>=0?'+':'')+moChangePct+'%', col:moChange>=0?'var(--green)':'var(--red)' },
+        { label:'Total Growth',        val:'+'+fmt(totalGain),                sub:'+'+totalPct+'% since '+first.date.substring(0,7) },
+        { label:'Monthly Rate',        val:(monthlyGrowth*100).toFixed(2)+'%', sub:'avg monthly return' },
+        { label:'Months to $3M',       val:moNeeded?Math.round(moNeeded)+'mo':'—', sub:'at current rate' },
+        { label:'Snapshots Logged',    val:data.length,                        sub:'auto-saved daily' },
+    ];
+
+    grid.innerHTML = stats.map(s =>
+        '<div class="stat-card">' +
+        '<div class="stat-label">' + s.label + '</div>' +
+        '<div class="stat-val" style="' + (s.col?'color:'+s.col:'') + '">' + s.val + '</div>' +
+        '<div class="stat-sub">' + (s.sub||'') + '</div>' +
+        '</div>'
+    ).join('');
+}
+
+function renderChart(data) {
+    const proj = project(data);
+    const actualLabels = data.map(d => d.date.substring(0,10));
+    const projLabels   = proj.map(d => d.date);
+    const allLabels    = [...new Set([...actualLabels, ...projLabels])].sort();
+    const goalValues   = allLabels.map(() => GOAL);
+
+    if (chart) { chart.destroy(); chart = null; }
+    const ctx = document.getElementById('netWorthChart').getContext('2d');
+    chart = new Chart(ctx, {
+        type:'line',
+        data:{
+            labels: allLabels,
+            datasets:[
+                {
+                    label:'Net Worth',
+                    data: allLabels.map(l => { const d=data.find(x=>x.date.startsWith(l)); return d?d.total:null; }),
+                    borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.08)',
+                    borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#00e676',
+                    pointBorderColor:'#060a06',pointBorderWidth:2,tension:0.3,fill:true,spanGaps:false,
+                },
+                {
+                    label:'Projected',
+                    data: allLabels.map(l => { const d=proj.find(x=>x.date===l); return d?d.value:null; }),
+                    borderColor:'rgba(255,214,0,0.5)',backgroundColor:'rgba(255,214,0,0.03)',
+                    borderWidth:1.5,borderDash:[6,4],pointRadius:0,tension:0.3,fill:false,spanGaps:false,
+                },
+                {
+                    label:'$3M Goal',data:goalValues,
+                    borderColor:'rgba(255,82,82,0.4)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,
+                }
+            ]
+        },
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:false},
+                tooltip:{
+                    backgroundColor:'#0d140d',borderColor:'#1a2e1a',borderWidth:1,
+                    titleColor:'#4a7a4a',bodyColor:'#e8f5e9',
+                    callbacks:{ label: ctx => ctx.parsed.y===null?null:' '+ctx.dataset.label+': '+fmtFull(ctx.parsed.y) }
+                }
+            },
+            scales:{
+                x:{ grid:{color:'rgba(26,46,26,0.5)'}, ticks:{color:'#4a7a4a',font:{family:"'Space Mono',monospace",size:10},maxTicksLimit:12} },
+                y:{ grid:{color:'rgba(26,46,26,0.5)'}, ticks:{color:'#4a7a4a',font:{family:"'Space Mono',monospace",size:10},callback:v=>fmt(v)} }
+            }
+        }
+    });
+}
+
+function renderHistory(data) {
+    const body = document.getElementById('historyBody');
+    if (!data.length) {
+        body.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);padding:20px;text-align:center;">No snapshots yet. Data will appear after first refresh.</td></tr>';
+        return;
+    }
+    body.innerHTML = [...data].reverse().map((d,i,arr) => {
+        const prev = arr[i+1];
+        const change = prev ? d.total - prev.total : null;
+        const changePct = prev ? ((change/prev.total)*100).toFixed(1) : null;
+        const vsGoal = ((d.total/GOAL)*100).toFixed(1);
+        const changeStr = change===null?'—':(change>=0?'+':'-')+fmt(Math.abs(change))+(changePct?' ('+(change>=0?'+':'')+changePct+'%)':'');
+        const cls = change===null?'':change>=0?'change-pos':'change-neg';
+        return '<tr>' +
+            '<td>' + d.date + '</td>' +
+            '<td class="value">' + fmtFull(d.total) + '</td>' +
+            '<td style="color:var(--ink3)">' + fmtFull(d.secure||0) + '</td>' +
+            '<td style="color:var(--ink3)">' + fmtFull(d.k401||0) + '</td>' +
+            '<td style="color:var(--ink3)">' + fmtFull(d.col529||0) + '</td>' +
+            '<td class="' + cls + '">' + changeStr + '</td>' +
+            '<td style="color:var(--ink3)">' + vsGoal + '%</td>' +
+            '</tr>';
+    }).join('');
+}
+
+// ── Auth & init ──────────────────────────────────────────────────
+let secureReady = false, k401Ready = false;
+
+onAuthStateChanged(secureAuth, async user => {
+    if (!user) { try { await signInAnonymously(secureAuth); } catch(e){} return; }
+    secureUserId = user.uid;
+    secureReady  = true;
+    if (secureReady && k401Ready) { await refresh(); subscribeHistory(k401Db, k401UserId); }
+});
+
+onAuthStateChanged(k401Auth, async user => {
+    if (!user) { try { await signInAnonymously(k401Auth); } catch(e){} return; }
+    k401UserId = user.uid;
+    k401Ready  = true;
+    if (secureReady && k401Ready) { await refresh(); subscribeHistory(k401Db, k401UserId); }
+});
+
+// Auto-refresh every 5 minutes
+setInterval(() => { if (secureReady && k401Ready) refresh(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
