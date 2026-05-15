@@ -249,7 +249,7 @@ try { k401Db = initializeFirestore(k401App, { localCache: memoryLocalCache() });
 catch(e) { k401Db = getFirestore(k401App); }
 
 secureAuth = getAuth(secureApp);
-k401Auth   = secureAuth; // same Google account
+k401Auth   = getAuth(k401App); // separate auth for smart-retirement-tracker
 
 // ── Format helpers ───────────────────────────────────────────────
 function fmt(n) {
@@ -613,12 +613,27 @@ onAuthStateChanged(secureAuth, async user => {
     if (gate) { gate.style.display = 'none'; }
     if (app)  { app.style.display  = 'block'; }
     secureUserId = user.uid;
-    k401UserId   = '7dyugfNBEjaGZ9vTogfzKrMeqWl2'; // 401k app uses different UID
+    k401UserId   = '7dyugfNBEjaGZ9vTogfzKrMeqWl2';
     secureReady  = true;
-    k401Ready    = true;
-    console.log('[3M] Signed in:', user.uid);
-    await refresh();
-    subscribeHistory(k401Db, k401UserId);
+    console.log('[3M] Secure signed in:', user.uid);
+    // Also sign into smart-retirement-tracker with same Google account
+    try {
+        await signInWithPopup(k401Auth, provider);
+    } catch(e) {
+        // Popup may be blocked on second call — try redirect token reuse
+        console.warn('[3M] k401 popup blocked, trying silent sign-in');
+        try { await signInWithPopup(k401Auth, provider); } catch(e2) {}
+    }
+});
+
+onAuthStateChanged(k401Auth, async user => {
+    if (!user) return;
+    k401Ready = true;
+    console.log('[3M] 401k signed in:', user.uid);
+    if (secureReady && k401Ready) {
+        await refresh();
+        subscribeHistory(k401Db, k401UserId);
+    }
 });
 
 // Auto-refresh every 5 minutes
