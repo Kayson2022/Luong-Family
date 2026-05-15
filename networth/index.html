@@ -461,10 +461,11 @@ function updateETA(data) {
 // ── Render functions ─────────────────────────────────────────────
 function renderMilestones(data, latest) {
     const row = document.getElementById('milestonesRow');
+    const valid = data.filter(d => d.total && d.total > 0);
     row.innerHTML = MILESTONES.map(m => {
         const achieved  = latest >= m;
         const isCurrent = !achieved && latest >= m * 0.8;
-        const hit = data.find(d => d.total >= m);
+        const hit = valid.find(d => d.total >= m);
         const cls = achieved ? 'achieved' : isCurrent ? 'current' : '';
         const icon = achieved ? '🏆' : isCurrent ? '🎯' : '○';
         return '<div class="milestone ' + cls + '">' +
@@ -477,29 +478,30 @@ function renderMilestones(data, latest) {
 
 function renderStats(data) {
     const grid = document.getElementById('statsGrid');
-    if (data.length < 2) {
-        grid.innerHTML = '<div class="stat-card"><div class="stat-label">Add 2+ snapshots to see stats</div></div>';
+    // Filter out snapshots with zero or invalid totals
+    const valid = data.filter(d => d.total && d.total > 0);
+    if (valid.length < 2) {
+        grid.innerHTML = '<div class="stat-card"><div class="stat-label">Building stats — check back tomorrow</div></div>';
         return;
     }
-    const first = data[0], last = data[data.length-1];
-    const prev  = data.length >= 2 ? data[data.length-2] : null;
+    const first = valid[0], last = valid[valid.length-1];
+    const prev  = valid.length >= 2 ? valid[valid.length-2] : null;
     const days  = (new Date(last.date) - new Date(first.date)) / (1000*60*60*24);
     const months = days / 30.5;
     const totalGain  = last.total - first.total;
-    const totalPct   = ((totalGain/first.total)*100).toFixed(1);
-    const monthlyAvg = months > 0 ? totalGain/months : 0;
+    const totalPct   = first.total > 0 ? ((totalGain/first.total)*100).toFixed(1) : '0';
     const moChange   = prev ? last.total - prev.total : 0;
-    const moChangePct= prev ? ((moChange/prev.total)*100).toFixed(1) : 0;
-    const monthlyGrowth = months > 0 ? Math.pow(last.total/first.total, 1/months) - 1 : 0;
+    const moChangePct= prev && prev.total > 0 ? ((moChange/prev.total)*100).toFixed(1) : '0';
+    const monthlyGrowth = months > 0 && first.total > 0 ? Math.pow(last.total/first.total, 1/months) - 1 : 0;
     const moNeeded = monthlyGrowth > 0 ? Math.log(GOAL/last.total)/Math.log(1+monthlyGrowth) : null;
 
     const stats = [
-        { label:'Avg Daily Growth',    val:fmt(totalGain/Math.max(1,days)),   sub:'since first snapshot' },
+        { label:'Avg Daily Growth',    val:fmt(days > 0 ? totalGain/days : 0),   sub:'since first snapshot' },
         { label:'Last Change',         val:(moChange>=0?'+':'')+fmt(moChange), sub:(moChangePct>=0?'+':'')+moChangePct+'%', col:moChange>=0?'var(--green)':'var(--red)' },
         { label:'Total Growth',        val:'+'+fmt(totalGain),                sub:'+'+totalPct+'% since '+first.date.substring(0,7) },
         { label:'Monthly Rate',        val:(monthlyGrowth*100).toFixed(2)+'%', sub:'avg monthly return' },
         { label:'Months to $3M',       val:moNeeded?Math.round(moNeeded)+'mo':'—', sub:'at current rate' },
-        { label:'Snapshots Logged',    val:data.length,                        sub:'auto-saved daily' },
+        { label:'Snapshots Logged',    val:valid.length,                       sub:'auto-saved daily' },
     ];
 
     grid.innerHTML = stats.map(s =>
@@ -512,8 +514,10 @@ function renderStats(data) {
 }
 
 function renderChart(data) {
-    const proj = project(data);
-    const actualLabels = data.map(d => d.date.substring(0,10));
+    // Filter out zero/invalid snapshots
+    const valid = data.filter(d => d.total && d.total > 0);
+    const proj = project(valid);
+    const actualLabels = valid.map(d => d.date.substring(0,10));
     const projLabels   = proj.map(d => d.date);
     const allLabels    = [...new Set([...actualLabels, ...projLabels])].sort();
     const goalValues   = allLabels.map(() => GOAL);
@@ -527,6 +531,7 @@ function renderChart(data) {
             datasets:[
                 {
                     label:'Net Worth',
+                    data: allLabels.map(l => { const d=valid.find(x=>x.date.startsWith(l)); return d?d.total:null; }),
                     data: allLabels.map(l => { const d=data.find(x=>x.date.startsWith(l)); return d?d.total:null; }),
                     borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.08)',
                     borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#00e676',
@@ -565,17 +570,19 @@ function renderChart(data) {
 
 function renderHistory(data) {
     const body = document.getElementById('historyBody');
-    if (!data.length) {
+    // Filter out zero/invalid snapshots
+    const valid = data.filter(d => d.total && d.total > 0);
+    if (!valid.length) {
         body.innerHTML = '<tr><td colspan="7" style="color:var(--ink3);padding:20px;text-align:center;">No snapshots yet. Data will appear after first refresh.</td></tr>';
         return;
     }
-    body.innerHTML = [...data].reverse().map((d,i,arr) => {
+    body.innerHTML = [...valid].reverse().map((d,i,arr) => {
         const prev = arr[i+1];
-        const change = prev ? d.total - prev.total : null;
-        const changePct = prev ? ((change/prev.total)*100).toFixed(1) : null;
+        const change = prev && prev.total > 0 ? d.total - prev.total : null;
+        const changePct = change !== null && prev.total > 0 ? ((change/prev.total)*100).toFixed(1) : null;
         const vsGoal = ((d.total/GOAL)*100).toFixed(1);
-        const changeStr = change===null?'—':(change>=0?'+':'-')+fmt(Math.abs(change))+(changePct?' ('+(change>=0?'+':'')+changePct+'%)':'');
-        const cls = change===null?'':change>=0?'change-pos':'change-neg';
+        const changeStr = change===null ? '—' : (change>=0?'+':'-') + fmt(Math.abs(change)) + (changePct ? ' (' + (change>=0?'+':'') + changePct + '%)' : '');
+        const cls = change===null ? '' : change>=0 ? 'change-pos' : 'change-neg';
         return '<tr>' +
             '<td>' + d.date + '</td>' +
             '<td class="value">' + fmtFull(d.total) + '</td>' +
