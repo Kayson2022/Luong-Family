@@ -323,8 +323,8 @@ async function fetchSecureData(userId, filterAccounts) {
 async function fetch401kData(userId, filterAccounts) {
     try {
         const [dataSnap, cacheSnap] = await Promise.all([
-            getDoc(doc(k401Db, 'users', userId, 'portfolio', 'portfolioData')),
-            getDoc(doc(k401Db, 'users', userId, 'portfolio', 'priceCache')),
+            getDoc(doc(k401Db, 'users', userId, 'data', 'portfolioData')),
+            getDoc(doc(k401Db, 'users', userId, 'data', 'priceCache')),
         ]);
         const portfolioData = dataSnap.exists() ? dataSnap.data() : {};
         const priceCache    = cacheSnap.exists() ? cacheSnap.data() : {};
@@ -342,7 +342,7 @@ async function saveSnapshot(db, userId, secureVal, k401Val, val529) {
     const today = new Date().toISOString().split('T')[0];
     try {
         await setDoc(
-            doc(db, 'users', userId, 'networth3m', today),
+            doc(db, 'users', userId, 'networth', today),
             {
                 date:       today,
                 total:      secureVal + k401Val + val529,
@@ -360,7 +360,7 @@ async function saveSnapshot(db, userId, secureVal, k401Val, val529) {
 
 // ── Load snapshot history ────────────────────────────────────────
 function subscribeHistory(db, userId) {
-    const q = query(collection(db, 'users', userId, 'networth3m'), orderBy('date', 'asc'));
+    const q = query(collection(db, 'users', userId, 'networth'), orderBy('date', 'asc'));
     onSnapshot(q, snap => {
         _history = snap.docs.map(d => d.data()).sort((a,b) => a.date.localeCompare(b.date));
         renderHistory(_history);
@@ -613,7 +613,7 @@ onAuthStateChanged(secureAuth, async user => {
     if (gate) { gate.style.display = 'none'; }
     if (app)  { app.style.display  = 'block'; }
     secureUserId = user.uid;
-    k401UserId   = user.uid; // same Google account for both
+    k401UserId   = '7dyugfNBEjaGZ9vTogfzKrMeqWl2'; // 401k app uses different UID
     secureReady  = true;
     k401Ready    = true;
     console.log('[3M] Signed in:', user.uid);
