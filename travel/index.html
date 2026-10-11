@@ -132,6 +132,16 @@ button{font-family:inherit;}
 .detail-title{font-family:var(--serif);font-size:1.45rem;color:var(--ink);line-height:1.2;margin-bottom:8px;}
 .detail-meta{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:.66rem;color:var(--ink3);margin-bottom:14px;}
 .detail-story{font-size:.86rem;color:var(--ink2);line-height:1.75;white-space:pre-line;}
+.album-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:16px 0 4px;padding:11px 14px;border-radius:9px;
+  background:var(--accent);color:#fff;text-decoration:none;font-family:var(--mono);font-size:.8rem;font-weight:600;}
+.album-btn:hover{opacity:.9;}
+.video-wrap{position:relative;width:100%;aspect-ratio:16/9;margin-top:12px;border-radius:9px;overflow:hidden;background:#000;}
+.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.video-link{display:inline-flex;align-items:center;gap:6px;margin:10px 8px 0 0;font-family:var(--mono);font-size:.72rem;color:var(--accent);text-decoration:none;
+  border:1px solid var(--border);padding:6px 10px;border-radius:7px;}
+.video-link:hover{border-color:var(--accent);}
+.form-help{font-size:.72rem;color:var(--ink2);line-height:1.5;}
+.list-icons{font-size:.7rem;margin-left:4px;}
 .detail-nav{display:flex;justify-content:space-between;gap:8px;padding:0 20px 12px;}
 .detail-footer{padding:12px 20px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
 
@@ -296,9 +306,21 @@ button{font-family:inherit;}
         <textarea class="form-input form-textarea" id="fStory" placeholder="Write your memories from this adventure..."></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Photo links</label>
+        <label class="form-label" for="fAlbum">📸 Album link (photos &amp; videos)</label>
+        <input class="form-input" id="fAlbum" placeholder="https://photos.app.goo.gl/…">
+        <div class="form-help">Google Photos: open the album → <b>Share</b> → <b>Create link</b> / <b>Copy link</b>, then paste it here. Any album link works (iCloud, Google Drive, Flickr…).</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">🎬 Videos (YouTube or other links)</label>
+        <div class="photo-url-list" id="videoUrlList"></div>
+        <button class="small-btn" type="button" onclick="addUrlRow('videoUrlList','')" style="align-self:flex-start;margin-top:4px;">+ Add another video</button>
+        <div class="form-help">YouTube links play right on the page. Other video links show as a "Watch" button.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">🖼 Cover photos (optional)</label>
         <div class="photo-url-list" id="photoUrlList"></div>
         <button class="small-btn" type="button" onclick="addPhotoUrl('')" style="align-self:flex-start;margin-top:4px;">+ Add another photo link</button>
+        <div class="form-help">Shown at the top of the trip. Needs a link to the picture itself (ends in .jpg / .png, or "Copy image address"). Album links go in the 📸 box above.</div>
       </div>
       <div class="form-group">
         <label class="form-label">Pin color</label>
@@ -338,6 +360,10 @@ let selectedColor = PIN_COLORS[0], pickMarker = null, picking = false, appStarte
 
 function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ytId(u) {
+  const m = String(u || '').match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
 function safeUrl(u) { u = String(u || '').trim(); return /^https?:\/\//i.test(u) ? u : ''; }
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
 function isDark() { return !document.body.classList.contains('light'); }
@@ -502,11 +528,13 @@ function renderList() {
   list.forEach(t => {
     const y = String(t.date || '').slice(0, 4) || '—';
     if (y !== year) { year = y; html += '<div class="list-year">' + esc(y) + '</div>'; }
-    const ph = (t.photos || []).map(safeUrl).filter(Boolean)[0];
+    const yt0 = (t.videos || []).map(ytId).filter(Boolean)[0];
+    const ph = (t.photos || []).map(safeUrl).filter(Boolean)[0] || (yt0 ? 'https://img.youtube.com/vi/' + yt0 + '/mqdefault.jpg' : '');
+    const icons = (safeUrl(t.album) ? '📸' : '') + ((t.videos || []).some(safeUrl) ? '🎬' : '');
     html += '<div class="list-item' + (t.id === activeId ? ' active' : '') + '" onclick="showDetail(\'' + esc(t.id) + '\', true)">' +
       (ph ? '<img class="list-thumb" src="' + esc(ph) + '" alt="" loading="lazy" data-color="' + esc(t.color || PIN_COLORS[0]) + '" onerror="this.outerHTML=\'<span class=&quot;list-dot&quot; style=&quot;background:\'+this.dataset.color+\'&quot;></span>\'">'
           : '<span class="list-dot" style="background:' + esc(t.color || PIN_COLORS[0]) + ';"></span>') +
-      '<div><div class="list-name">' + esc(t.title) + '</div><div class="list-meta">' + esc(t.country) + ' · ' + fmtDate(t.date) + '</div></div></div>';
+      '<div><div class="list-name">' + esc(t.title) + (icons ? '<span class="list-icons">' + icons + '</span>' : '') + '</div><div class="list-meta">' + esc(t.country) + ' · ' + fmtDate(t.date) + '</div></div></div>';
   });
   body.innerHTML = html;
 }
@@ -539,6 +567,8 @@ function showDetail(id, fromList) {
       '<div class="detail-title">' + esc(t.title) + '</div>' +
       '<div class="detail-meta"><span>📅 ' + fmtDate(t.date) + '</span><span>🌐 ' + Number(t.lat).toFixed(2) + '°, ' + Number(t.lng).toFixed(2) + '°</span></div>' +
       '<div class="detail-story">' + (t.story ? esc(t.story) : '<em style="color:var(--ink3)">No story written yet.</em>') + '</div>' +
+      (safeUrl(t.album) ? '<a class="album-btn" href="' + esc(safeUrl(t.album)) + '" target="_blank" rel="noopener">📸 Open photo &amp; video album ↗</a>' : '') +
+      videosHtml(t) +
     '</div>' +
     (trips.length > 1 ? '<div class="detail-nav"><button class="btn" ' + (idx >= trips.length - 1 ? 'disabled style="opacity:.4"' : '') + ' onclick="stepTrip(1)">← Older</button>' +
       '<button class="btn" ' + (idx <= 0 ? 'disabled style="opacity:.4"' : '') + ' onclick="stepTrip(-1)">Newer →</button></div>' : '') +
@@ -555,6 +585,18 @@ function showDetail(id, fromList) {
   renderList();
   const lat = Number(t.lat), lng = Number(t.lng);
   if (isFinite(lat) && isFinite(lng)) map.flyTo([lat, lng], Math.max(map.getZoom(), 5), { duration: fromList ? 1.2 : 0.8 });
+}
+function videosHtml(t) {
+  const vids = (t.videos || []).map(safeUrl).filter(Boolean);
+  if (!vids.length) return '';
+  let other = 0;
+  return vids.map(v => {
+    const id = ytId(v);
+    if (id) return '<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/' + id + '" title="Trip video" loading="lazy" ' +
+                   'allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe></div>';
+    other++;
+    return '<a class="video-link" href="' + esc(v) + '" target="_blank" rel="noopener">▶ Watch video' + (vids.length > 1 ? ' ' + other : '') + ' ↗</a>';
+  }).join('');
 }
 function stepTrip(dir) {
   const i = trips.findIndex(x => x.id === activeId);
@@ -590,9 +632,13 @@ function openModal(id) {
   document.getElementById('fLat').value = t && t.lat != null ? t.lat : '';
   document.getElementById('fLng').value = t && t.lng != null ? t.lng : '';
   document.getElementById('fStory').value = t ? (t.story || '') : '';
+  document.getElementById('fAlbum').value = t ? (t.album || '') : '';
   document.getElementById('photoUrlList').innerHTML = '';
   const ph = t ? (t.photos || []) : [];
   (ph.length ? ph : ['']).forEach(addPhotoUrl);
+  document.getElementById('videoUrlList').innerHTML = '';
+  const vd = t ? (t.videos || []) : [];
+  (vd.length ? vd : ['']).forEach(v => addUrlRow('videoUrlList', v));
   selectedColor = t && t.color ? t.color : PIN_COLORS[0];
   renderColorPicker();
   document.getElementById('coordHint').textContent = t ? 'Current pin shown on the map' : 'or type the coordinates';
@@ -605,14 +651,16 @@ function closeModal() {
   if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
   editId = null;
 }
-function addPhotoUrl(val) {
+function addUrlRow(listId, val) {
   const row = document.createElement('div');
   row.className = 'photo-url-row';
-  row.innerHTML = '<input class="form-input" placeholder="https://… paste a photo link"><button class="small-btn" type="button" title="Remove">×</button>';
+  row.innerHTML = '<input class="form-input"><button class="small-btn" type="button" title="Remove">×</button>';
+  row.firstChild.placeholder = listId === 'videoUrlList' ? 'https://youtu.be/…' : 'https://… link to the picture';
   row.firstChild.value = val || '';
-  row.lastChild.onclick = () => { if (document.querySelectorAll('#photoUrlList .photo-url-row').length > 1) row.remove(); else row.firstChild.value = ''; };
-  document.getElementById('photoUrlList').appendChild(row);
+  row.lastChild.onclick = () => { if (document.querySelectorAll('#' + listId + ' .photo-url-row').length > 1) row.remove(); else row.firstChild.value = ''; };
+  document.getElementById(listId).appendChild(row);
 }
+function addPhotoUrl(val) { addUrlRow('photoUrlList', val); }
 function startPick() {
   picking = true;
   document.getElementById('modalOverlay').classList.add('picking');
@@ -656,12 +704,14 @@ async function saveTrip() {
   if (!title || !country || !date || isNaN(lat) || isNaN(lng)) { alert('Please fill in Title, Country, Month, and the location (Pick on map).'); return; }
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert('Latitude must be between −90 and 90, longitude between −180 and 180.'); return; }
   const photos = Array.from(document.querySelectorAll('#photoUrlList input')).map(i => i.value.trim()).filter(Boolean);
-  const bad = photos.filter(p => !safeUrl(p));
-  if (bad.length) { alert('Photo links must start with https://\n\n' + bad.join('\n')); return; }
+  const videos = Array.from(document.querySelectorAll('#videoUrlList input')).map(i => i.value.trim()).filter(Boolean);
+  const album = document.getElementById('fAlbum').value.trim();
+  const bad = photos.concat(videos, album ? [album] : []).filter(p => !safeUrl(p));
+  if (bad.length) { alert('Links must start with https://\n\n' + bad.join('\n')); return; }
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
   try {
-    const data = { title, country, date, lat, lng, story, photos, color: selectedColor };
+    const data = { title, country, date, lat, lng, story, photos, videos, album, color: selectedColor };
     let id = editId;
     const wasEdit = !!editId;
     if (editId) {
