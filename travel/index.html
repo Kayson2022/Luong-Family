@@ -4,449 +4,319 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luong Family — Travel Map</title>
+<!-- 2026-10-11 rebuild: Google sign-in (Firestore rules block anonymous reads), real dark/light map tiles,
+     map fills the screen, trip list, edit trip, visible load errors. Data: Firestore travel_map (unchanged). -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-/* ── Variables ── */
 :root {
   --bg:#0d1117; --surface:#161b22; --surface2:#21262d;
-  --border:#30363d; --ink:#e6edf3; --ink2:#8b949e; --ink3:#484f58;
+  --border:#30363d; --ink:#e6edf3; --ink2:#8b949e; --ink3:#6e7681;
   --accent:#c9824c; --gold:#c9a84c; --green:#3fb950;
   --red:#f85149; --blue:#58a6ff; --purple:#bc8cff;
+  --map-bg:#1b1f24;
   --mono:'DM Mono',monospace;
   --serif:'Playfair Display',serif;
   --sans:'Syne',sans-serif;
-  --tile-filter:brightness(0.6) invert(1) hue-rotate(200deg) saturate(0.4) contrast(0.85);
 }
 .light {
   --bg:#f7f3ec; --surface:#ffffff; --surface2:#ede6d9;
-  --border:#e0d6c8; --ink:#1c1814; --ink2:#7a6e60; --ink3:#b0a494;
-  --tile-filter:none;
+  --border:#e0d6c8; --ink:#1c1814; --ink2:#6f6355; --ink3:#9a8e80;
+  --map-bg:#e8e4dc;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--ink);
-  font-family:var(--sans);transition:background 0.3s,color 0.3s;}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);transition:background .3s,color .3s;}
+button{font-family:inherit;}
 
-/* ── Gate ── */
-#gate{
-  position:fixed;inset:0;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  z-index:2000;flex-direction:column;gap:28px;
-}
-.gate-bg{
-  position:absolute;inset:0;overflow:hidden;pointer-events:none;
-}
-.gate-bg-text{
-  position:absolute;font-family:var(--serif);font-size:20vw;
-  font-weight:700;color:rgba(201,130,76,0.04);
-  white-space:nowrap;top:50%;left:50%;
-  transform:translate(-50%,-50%) rotate(-8deg);
-  letter-spacing:-2px;
-}
-.gate-card{
-  position:relative;z-index:1;
-  display:flex;flex-direction:column;align-items:center;gap:20px;
-  padding:48px 40px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:16px;
-  min-width:320px;
-  box-shadow:0 24px 60px rgba(0,0,0,0.4);
-}
-.gate-icon{font-size:3rem;margin-bottom:4px;}
-.gate-title{
-  font-family:var(--serif);font-size:2rem;
-  color:var(--accent);font-style:italic;text-align:center;
-}
-.gate-sub{
-  font-family:var(--mono);font-size:0.65rem;
-  letter-spacing:0.2em;text-transform:uppercase;
-  color:var(--ink3);text-align:center;margin-top:-12px;
-}
-.gate-input{
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--ink);padding:13px 18px;border-radius:8px;
-  font-size:1rem;font-family:var(--mono);width:100%;
-  text-align:center;outline:none;transition:border-color 0.2s;
-}
-.gate-input:focus{border-color:var(--accent);}
-.gate-btn{
-  background:var(--accent);color:#fff;border:none;
-  padding:13px 32px;border-radius:8px;
-  font-family:var(--mono);font-size:0.85rem;
-  font-weight:500;letter-spacing:0.05em;
-  cursor:pointer;transition:opacity 0.2s;width:100%;
-}
-.gate-btn:hover{opacity:0.85;}
-.gate-error{color:var(--red);font-family:var(--mono);
-  font-size:0.75rem;min-height:16px;text-align:center;}
+/* ── Gate (sign in) ── */
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px;}
+.gate-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.gate-bg-text{position:absolute;font-family:var(--serif);font-size:20vw;font-weight:700;color:rgba(201,130,76,.05);
+  white-space:nowrap;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);letter-spacing:-2px;}
+.gate-card{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:18px;padding:44px 36px;
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,.4);}
+.gate-icon{font-size:3rem;}
+.gate-title{font-family:var(--serif);font-size:2rem;color:var(--accent);font-style:italic;text-align:center;}
+.gate-sub{font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-top:-10px;}
+.gate-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:#fff;border:none;
+  padding:13px 24px;border-radius:8px;font-family:var(--mono);font-size:.85rem;font-weight:500;cursor:pointer;width:100%;transition:opacity .2s;}
+.gate-btn:hover{opacity:.88;}
+.gate-btn:disabled{opacity:.5;cursor:wait;}
+.gate-note{font-size:.72rem;color:var(--ink2);text-align:center;line-height:1.6;}
+.gate-error{color:var(--red);font-family:var(--mono);font-size:.72rem;min-height:16px;text-align:center;line-height:1.5;word-break:break-word;}
+.gate-back{font-family:var(--mono);font-size:.68rem;color:var(--ink3);text-decoration:none;}
+.gate-back:hover{color:var(--accent);}
 
-/* ── App Shell ── */
-#app{display:none;height:100vh;flex-direction:column;}
+/* ── App shell ── */
+#app{display:none;height:100vh;height:100dvh;flex-direction:column;}
 #app.visible{display:flex;}
-
-/* ── Topbar ── */
-.topbar{
-  background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 20px;height:56px;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;z-index:500;gap:12px;
-}
-.brand{
-  display:flex;align-items:center;gap:10px;flex-shrink:0;
-}
-.brand-globe{font-size:1.2rem;}
-.brand-text{
-  font-family:var(--serif);font-size:1.1rem;
-  color:var(--accent);font-style:italic;
-}
-.brand-sep{color:var(--border);font-size:1.2rem;}
-.brand-sub{
-  font-family:var(--mono);font-size:0.6rem;
-  letter-spacing:0.2em;text-transform:uppercase;color:var(--ink3);
-}
-.topbar-center{
-  display:flex;align-items:center;gap:16px;
-  font-family:var(--mono);font-size:0.7rem;color:var(--ink3);
-}
-.stat-pill{
-  display:flex;align-items:center;gap:6px;
-  padding:4px 12px;background:var(--surface2);
-  border:1px solid var(--border);border-radius:20px;
-}
-.stat-pill strong{color:var(--accent);font-size:0.85rem;}
-.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.btn{
-  background:transparent;border:1px solid var(--border);
-  color:var(--ink2);padding:6px 14px;border-radius:6px;
-  cursor:pointer;font-family:var(--mono);font-size:0.75rem;
-  transition:all 0.2s;white-space:nowrap;
-}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:500;gap:10px;}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;}
+.brand-home{color:var(--ink3);text-decoration:none;font-family:var(--mono);font-size:.75rem;padding:4px 6px;border-radius:6px;}
+.brand-home:hover{color:var(--accent);background:var(--surface2);}
+.brand-text{font-family:var(--serif);font-size:1.1rem;color:var(--accent);font-style:italic;white-space:nowrap;}
+.brand-sub{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);white-space:nowrap;}
+.stats{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;color:var(--ink2);}
+.stat-pill{display:flex;align-items:center;gap:6px;padding:4px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;white-space:nowrap;}
+.stat-pill strong{color:var(--accent);font-size:.85rem;}
+.topbar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.btn{background:transparent;border:1px solid var(--border);color:var(--ink2);padding:6px 12px;border-radius:6px;cursor:pointer;
+  font-family:var(--mono);font-size:.75rem;transition:all .2s;white-space:nowrap;}
 .btn:hover{border-color:var(--accent);color:var(--accent);}
-.btn-accent{
-  background:var(--accent);color:#fff;
-  border-color:var(--accent);font-weight:600;
-}
-.btn-accent:hover{opacity:0.85;color:#fff;}
+.btn.on{border-color:var(--accent);color:var(--accent);}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+.btn-accent:hover{opacity:.88;color:#fff;}
+.btn-danger{color:var(--red);border-color:var(--red);}
+.avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);cursor:pointer;object-fit:cover;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--ink2);}
 
 /* ── Map ── */
 .map-container{flex:1;position:relative;overflow:hidden;}
-#map{width:100%;height:100%;}
-.leaflet-tile{filter:var(--tile-filter);transition:filter 0.3s;}
-.leaflet-tile-pane{filter:var(--tile-filter);}
+#map{position:absolute;inset:0;background:var(--map-bg);}
+.leaflet-container{background:var(--map-bg);font-family:var(--sans);}
+.leaflet-tooltip{font-family:var(--sans);}
+.leaflet-bottom.leaflet-right .leaflet-control-zoom{margin-bottom:28px;}
+.map-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:6px 16px;font-family:var(--mono);font-size:.68rem;color:var(--ink2);z-index:450;pointer-events:none;
+  transition:opacity .4s;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;}
+.map-hint.hide{opacity:0;}
+.picking .leaflet-container{cursor:crosshair;}
 
-/* ── Map hint ── */
-.map-hint{
-  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:20px;padding:6px 16px;
-  font-family:var(--mono);font-size:0.65rem;color:var(--ink3);
-  z-index:400;pointer-events:none;
-  opacity:1;transition:opacity 0.5s;
-}
+/* status box (empty / error) */
+.map-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:32px 36px;text-align:center;z-index:420;box-shadow:0 8px 32px rgba(0,0,0,.3);width:min(420px,calc(100% - 32px));}
+.map-msg h3{font-family:var(--serif);font-size:1.35rem;color:var(--ink);margin:10px 0 8px;}
+.map-msg p{font-size:.84rem;color:var(--ink2);line-height:1.6;margin-bottom:14px;}
+.map-msg code{font-family:var(--mono);font-size:.72rem;background:var(--surface2);padding:2px 6px;border-radius:4px;word-break:break-all;}
 
-/* ── Detail Panel ── */
-.detail{
-  position:absolute;top:16px;right:16px;
-  width:360px;max-height:calc(100vh - 88px);
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.5);
-  z-index:400;overflow-y:auto;
-  transform:translateX(calc(100% + 20px));
-  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
-  display:flex;flex-direction:column;
-}
+/* ── Trip list panel ── */
+.list{position:absolute;top:12px;left:12px;bottom:12px;width:300px;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;z-index:430;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.35);
+  transform:translateX(calc(-100% - 20px));transition:transform .3s ease;}
+.list.open{transform:translateX(0);}
+.list-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.list-title{font-family:var(--serif);font-size:1.1rem;}
+.list-search{margin:10px 12px 6px;background:var(--surface2);border:1px solid var(--border);color:var(--ink);padding:8px 11px;border-radius:7px;font-size:.82rem;outline:none;}
+.list-search:focus{border-color:var(--accent);}
+.list-body{overflow-y:auto;padding:4px 8px 10px;flex:1;}
+.list-year{font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;color:var(--ink3);padding:12px 8px 4px;}
+.list-item{display:flex;gap:10px;align-items:center;padding:9px 8px;border-radius:8px;cursor:pointer;}
+.list-item:hover,.list-item.active{background:var(--surface2);}
+.list-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.25);}
+.list-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface2);}
+.list-name{font-size:.84rem;font-weight:600;line-height:1.25;}
+.list-meta{font-family:var(--mono);font-size:.62rem;color:var(--ink3);margin-top:2px;}
+.list-empty{font-size:.8rem;color:var(--ink3);padding:16px 8px;}
+
+/* ── Detail panel ── */
+.detail{position:absolute;top:12px;right:12px;width:360px;max-height:calc(100% - 24px);background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:440;overflow-y:auto;transform:translateX(calc(100% + 24px));
+  transition:transform .35s cubic-bezier(.34,1.3,.64,1);}
 .detail.open{transform:translateX(0);}
-.detail-close{
-  position:absolute;top:12px;right:12px;
-  background:var(--surface2);border:none;
-  color:var(--ink2);width:28px;height:28px;
-  border-radius:50%;cursor:pointer;font-size:1rem;
-  display:flex;align-items:center;justify-content:center;
-  z-index:10;transition:background 0.2s;
-}
-.detail-close:hover{background:var(--border);}
-
-/* Photos strip */
-.detail-photos{
-  display:flex;overflow-x:auto;scroll-snap-type:x mandatory;
-  border-radius:12px 12px 0 0;
-  min-height:200px;background:var(--surface2);
-  scrollbar-width:none;
-}
+.detail-close{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.45);border:none;color:#fff;width:30px;height:30px;border-radius:50%;
+  cursor:pointer;font-size:1.05rem;display:flex;align-items:center;justify-content:center;z-index:10;}
+.detail-photos{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:12px 12px 0 0;background:var(--surface2);scrollbar-width:none;}
 .detail-photos::-webkit-scrollbar{display:none;}
-.detail-photos img{
-  flex-shrink:0;width:100%;height:200px;
-  object-fit:cover;scroll-snap-align:start;
-  border-radius:12px 12px 0 0;
-}
-.detail-no-photo{
-  width:100%;min-height:120px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:3rem;background:var(--surface2);
-  border-radius:12px 12px 0 0;
-}
-.photo-dots{
-  display:flex;justify-content:center;gap:5px;
-  padding:8px 0 4px;
-}
-.photo-dot{
-  width:5px;height:5px;border-radius:50%;
-  background:var(--border);transition:background 0.2s;
-}
+.detail-photos img{flex-shrink:0;width:100%;height:210px;object-fit:cover;scroll-snap-align:start;cursor:zoom-in;}
+.detail-no-photo{width:100%;height:110px;display:flex;align-items:center;justify-content:center;font-size:2.6rem;background:var(--surface2);border-radius:12px 12px 0 0;}
+.photo-dots{display:flex;justify-content:center;gap:5px;padding:8px 0 2px;}
+.photo-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:background .2s;}
 .photo-dot.active{background:var(--accent);}
+.detail-body{padding:16px 20px 18px;}
+.detail-tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.detail-title{font-family:var(--serif);font-size:1.45rem;color:var(--ink);line-height:1.2;margin-bottom:8px;}
+.detail-meta{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:.66rem;color:var(--ink3);margin-bottom:14px;}
+.detail-story{font-size:.86rem;color:var(--ink2);line-height:1.75;white-space:pre-line;}
+.detail-nav{display:flex;justify-content:space-between;gap:8px;padding:0 20px 12px;}
+.detail-footer{padding:12px 20px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;}
 
-/* Detail body */
-.detail-body{padding:18px 20px 20px;}
-.detail-tag{
-  font-family:var(--mono);font-size:0.6rem;
-  letter-spacing:0.2em;text-transform:uppercase;
-  color:var(--accent);margin-bottom:6px;
-}
-.detail-title{
-  font-family:var(--serif);font-size:1.4rem;
-  color:var(--ink);line-height:1.2;margin-bottom:8px;
-}
-.detail-meta{
-  display:flex;gap:10px;flex-wrap:wrap;
-  font-family:var(--mono);font-size:0.65rem;
-  color:var(--ink3);margin-bottom:14px;
-}
-.detail-story{
-  font-size:0.85rem;color:var(--ink2);
-  line-height:1.7;white-space:pre-line;
-}
-.detail-footer{
-  padding:14px 20px;border-top:1px solid var(--border);
-  display:flex;gap:8px;
-}
+/* photo viewer */
+.viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1500;display:none;align-items:center;justify-content:center;cursor:zoom-out;}
+.viewer.open{display:flex;}
+.viewer img{max-width:94vw;max-height:90vh;border-radius:6px;}
 
-/* ── Add Trip Modal ── */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.75);
-  z-index:900;display:none;align-items:center;
-  justify-content:center;padding:16px;
-}
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:none;align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:14px;width:100%;max-width:540px;
-  max-height:90vh;overflow-y:auto;
-}
-.modal-header{
-  padding:20px 24px 16px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.modal-title{
-  font-family:var(--serif);font-size:1.3rem;color:var(--ink);
-}
-.modal-body{
-  padding:20px 24px;
-  display:flex;flex-direction:column;gap:14px;
-}
+.modal-overlay.picking{background:transparent;pointer-events:none;}
+.modal-overlay.picking .modal{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:var(--serif);font-size:1.3rem;color:var(--ink);}
+.modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
 .form-group{display:flex;flex-direction:column;gap:5px;}
-.form-label{
-  font-family:var(--mono);font-size:0.62rem;
-  letter-spacing:0.15em;text-transform:uppercase;color:var(--ink3);
-}
-.form-input{
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--ink);padding:10px 13px;border-radius:6px;
-  font-family:var(--sans);font-size:0.88rem;
-  outline:none;transition:border-color 0.2s;width:100%;
-}
+.form-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);}
+.form-input{background:var(--surface2);border:1px solid var(--border);color:var(--ink);padding:10px 12px;border-radius:6px;font-family:var(--sans);
+  font-size:.88rem;outline:none;transition:border-color .2s;width:100%;}
 .form-input:focus{border-color:var(--accent);}
-.form-textarea{min-height:90px;resize:vertical;font-family:var(--sans);}
+.form-textarea{min-height:100px;resize:vertical;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.form-hint{
-  font-family:var(--mono);font-size:0.6rem;
-  color:var(--accent);margin-top:3px;
-}
-.modal-footer{
-  padding:14px 24px 20px;border-top:1px solid var(--border);
-  display:flex;gap:8px;justify-content:flex-end;
-}
+.form-hint{font-family:var(--mono);font-size:.62rem;color:var(--accent);}
+.coord-tools{display:flex;gap:6px;flex-wrap:wrap;}
+.modal-footer{padding:12px 22px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
 .photo-url-list{display:flex;flex-direction:column;gap:6px;}
 .photo-url-row{display:flex;gap:6px;}
 .photo-url-row input{flex:1;}
-.add-url-btn{
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--ink2);padding:6px 12px;border-radius:6px;
-  cursor:pointer;font-size:0.8rem;white-space:nowrap;
-  transition:all 0.2s;
-}
-.add-url-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-/* ── Pin colors ── */
+.small-btn{background:var(--surface2);border:1px solid var(--border);color:var(--ink2);padding:6px 11px;border-radius:6px;cursor:pointer;font-size:.78rem;white-space:nowrap;}
+.small-btn:hover{border-color:var(--accent);color:var(--accent);}
 .color-row{display:flex;gap:8px;flex-wrap:wrap;}
-.color-opt{
-  width:28px;height:28px;border-radius:50%;
-  cursor:pointer;border:3px solid transparent;
-  transition:border-color 0.2s,transform 0.15s;
-}
-.color-opt.selected,.color-opt:hover{
-  border-color:var(--ink);transform:scale(1.15);
-}
+.color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border-color .2s,transform .15s;}
+.color-opt.selected,.color-opt:hover{border-color:var(--ink);transform:scale(1.12);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;
+  font-family:var(--mono);font-size:.75rem;z-index:2500;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
 
-/* ── Empty state ── */
-.map-empty{
-  position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;padding:40px 48px;
-  text-align:center;z-index:300;
-  box-shadow:0 8px 32px rgba(0,0,0,0.3);
-}
-.map-empty h3{
-  font-family:var(--serif);font-size:1.4rem;
-  color:var(--ink);margin:12px 0 8px;
-}
-.map-empty p{
-  font-size:0.85rem;color:var(--ink2);
-  line-height:1.6;max-width:280px;margin-bottom:16px;
-}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-/* Scrollbar */
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-
-/* Mobile */
-@media(max-width:640px){
-  .detail{width:calc(100vw - 16px);right:8px;top:8px;}
-  .topbar-center{display:none;}
+@media(max-width:760px){
   .brand-sub{display:none;}
+  .stats .stat-pill{padding:3px 8px;}
+  .btn-label{display:none;}
+}
+@media(max-width:640px){
+  .topbar{padding:0 10px;gap:6px;}
+  .brand-text{font-size:1rem;}
+  .stats{display:none;}
+  .list{left:8px;right:8px;top:auto;bottom:8px;width:auto;height:55%;transform:translateY(calc(100% + 20px));}
+  .list.open{transform:translateY(0);}
+  .detail{width:auto;left:8px;right:8px;top:auto;bottom:8px;max-height:75%;transform:translateY(calc(100% + 24px));}
+  .detail.open{transform:translateY(0);}
+  .form-row{grid-template-columns:1fr;}
+  .map-hint{bottom:14px;}
 }
 </style>
 </head>
 <body>
 
-<!-- ── Password Gate ── -->
+<!-- ── Sign-in gate ── -->
 <div id="gate">
   <div class="gate-bg"><div class="gate-bg-text">TRAVEL</div></div>
   <div class="gate-card">
     <div class="gate-icon">🗺️</div>
     <div class="gate-title">Travel Map</div>
     <div class="gate-sub">Luong Family · Private</div>
-    <input type="password" class="gate-input" id="gateInput"
-      placeholder="Family password"
-      onkeydown="if(event.key==='Enter')unlock()">
-    <button class="gate-btn" onclick="unlock()">Enter ✈️</button>
+    <button class="gate-btn" id="gateBtn" onclick="signIn()" disabled>Checking sign-in…</button>
+    <div class="gate-note">Sign in with the family Google account. If you are already signed in to the Secure app in this browser, the map opens by itself.</div>
     <div class="gate-error" id="gateError"></div>
+    <a class="gate-back" href="../index.html">← Luong Family home</a>
   </div>
 </div>
 
 <!-- ── App ── -->
 <div id="app">
-
-  <!-- Topbar -->
   <div class="topbar">
     <div class="brand">
-      <div class="brand-globe">🌍</div>
-      <div class="brand-text">Travel Map</div>
-      <div class="brand-sep">·</div>
-      <div class="brand-sub">Luong Family</div>
+      <a class="brand-home" href="../index.html" title="Luong Family home">←</a>
+      <span style="font-size:1.15rem;">🌍</span>
+      <span class="brand-text">Travel Map</span>
+      <span class="brand-sub">· Luong Family</span>
     </div>
-    <div class="topbar-center">
-      <div class="stat-pill">✈️ <strong id="statTrips">0</strong> trips</div>
-      <div class="stat-pill">📍 <strong id="statCountries">0</strong> countries</div>
+    <div class="stats">
+      <div class="stat-pill">✈️ <strong id="statTrips">–</strong> trips</div>
+      <div class="stat-pill">📍 <strong id="statCountries">–</strong> countries</div>
+      <div class="stat-pill" id="statYearsPill" style="display:none;">🗓 <strong id="statYears">–</strong></div>
     </div>
     <div class="topbar-actions">
-      <button class="btn" onclick="toggleTheme()">🌓 Theme</button>
-      <button class="btn btn-accent" onclick="openModal()">+ Add Trip</button>
+      <button class="btn" id="listBtn" onclick="toggleList()" title="All trips">☰<span class="btn-label"> Trips</span></button>
+      <button class="btn" onclick="toggleTheme()" title="Light / dark">🌓<span class="btn-label"> Theme</span></button>
+      <button class="btn btn-accent" onclick="openModal()">+<span class="btn-label"> Add Trip</span></button>
+      <div class="avatar" id="avatar" title="Signed in" onclick="signOutAsk()"></div>
     </div>
   </div>
 
-  <!-- Map -->
-  <div class="map-container">
+  <div class="map-container" id="mapContainer">
     <div id="map"></div>
-    <div class="map-hint" id="mapHint">💡 Click anywhere on the map to copy coordinates when adding a trip</div>
+    <div class="map-hint hide" id="mapHint"></div>
+    <div class="map-msg" id="mapMsg" style="display:none;"></div>
 
-    <!-- Empty state -->
-    <div class="map-empty" id="mapEmpty" style="display:none;">
-      <div style="font-size:3rem;">🗺️</div>
-      <h3>No trips yet</h3>
-      <p>Add your first adventure and it will appear as a pin on the map.</p>
-      <button class="btn btn-accent" onclick="openModal()">+ Add First Trip</button>
+    <div class="list" id="list">
+      <div class="list-head">
+        <div class="list-title">Our trips</div>
+        <button class="btn" onclick="toggleList(false)">×</button>
+      </div>
+      <input class="list-search" id="listSearch" placeholder="Search title, country, story…" oninput="renderList()">
+      <div class="list-body" id="listBody"></div>
     </div>
 
-    <!-- Detail Panel -->
     <div class="detail" id="detail">
-      <button class="detail-close" onclick="closeDetail()">×</button>
+      <button class="detail-close" onclick="closeDetail()" title="Close">×</button>
       <div id="detailInner"></div>
     </div>
   </div>
 </div>
 
-<!-- ── Add Trip Modal ── -->
+<!-- ── Add / Edit modal ── -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">✈️ Add New Adventure</div>
+      <div class="modal-title" id="modalTitle">✈️ Add New Adventure</div>
       <button class="btn" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Trip Title *</label>
+        <label class="form-label" for="fTitle">Trip title *</label>
         <input class="form-input" id="fTitle" placeholder="e.g. Tokyo Cherry Blossom">
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Country / Region *</label>
-          <input class="form-input" id="fCountry" placeholder="Japan">
+          <label class="form-label" for="fCountry">Country / region *</label>
+          <input class="form-input" id="fCountry" placeholder="Japan" list="countryList">
+          <datalist id="countryList"></datalist>
         </div>
         <div class="form-group">
-          <label class="form-label">Date *</label>
+          <label class="form-label" for="fDate">Month *</label>
           <input class="form-input" id="fDate" type="month">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location on the map *</label>
+        <div class="coord-tools">
+          <button class="small-btn" type="button" onclick="startPick()">📍 Pick on map</button>
+          <span class="form-hint" id="coordHint" style="align-self:center;">or type the coordinates</span>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Latitude *</label>
+          <label class="form-label" for="fLat">Latitude</label>
           <input class="form-input" id="fLat" type="number" step="any" placeholder="35.6762">
-          <div class="form-hint" id="coordHint">Click map to auto-fill ↓</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Longitude *</label>
+          <label class="form-label" for="fLng">Longitude</label>
           <input class="form-input" id="fLng" type="number" step="any" placeholder="139.6503">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Trip Story</label>
-        <textarea class="form-input form-textarea" id="fStory"
-          placeholder="Write your memories from this adventure..."></textarea>
+        <label class="form-label" for="fStory">Trip story</label>
+        <textarea class="form-input form-textarea" id="fStory" placeholder="Write your memories from this adventure..."></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Photo URLs</label>
-        <div class="photo-url-list" id="photoUrlList">
-          <div class="photo-url-row">
-            <input class="form-input" placeholder="https://... paste image URL">
-          </div>
-        </div>
-        <button class="add-url-btn" onclick="addPhotoUrl()" style="margin-top:6px;">
-          + Add another photo URL
-        </button>
+        <label class="form-label">Photo links</label>
+        <div class="photo-url-list" id="photoUrlList"></div>
+        <button class="small-btn" type="button" onclick="addPhotoUrl('')" style="align-self:flex-start;margin-top:4px;">+ Add another photo link</button>
       </div>
       <div class="form-group">
-        <label class="form-label">Pin Color</label>
+        <label class="form-label">Pin color</label>
         <div class="color-row" id="colorRow"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="saveTrip()">Save Trip 🗺️</button>
+      <button class="btn btn-accent" id="saveBtn" onclick="saveTrip()">Save Trip 🗺️</button>
     </div>
   </div>
 </div>
 
+<div class="viewer" id="viewer" onclick="this.classList.remove('open')"><img id="viewerImg" alt=""></div>
+<div class="toast" id="toast"></div>
+
 <script>
 // ── Config ──────────────────────────────────────────────────────────
-const FAMILY_PASSWORD = 'Happy.1234'; // ← CHANGE THIS
-
 const firebaseConfig = {
   apiKey:            "AIzaSyB8wQ0-O2avYjRW7Wjtmiql03q1ikwhX7s",
   authDomain:        "stocks-etfs-mutual.firebaseapp.com",
@@ -455,314 +325,377 @@ const firebaseConfig = {
   messagingSenderId: "326474465163",
   appId:             "1:326474465163:web:6d140efca04077ba8f1f98e"
 };
-
-const PIN_COLORS = [
-  '#c9824c','#c9a84c','#3fb950','#58a6ff',
-  '#bc8cff','#f85149','#e05c30','#ffffff'
-];
+const PIN_COLORS = ['#c9824c','#c9a84c','#3fb950','#58a6ff','#bc8cff','#f85149','#e05c30','#ffffff'];
+const TILES = {
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+};
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 // ── State ───────────────────────────────────────────────────────────
-let db, map, trips = [], markers = {}, activeId = null;
-let isDark = true, selectedColor = PIN_COLORS[0];
-let clickedLat = null, clickedLng = null;
+let auth, db, map, tiles, trips = [], markers = {}, activeId = null, editId = null;
+let selectedColor = PIN_COLORS[0], pickMarker = null, picking = false, appStarted = false;
 
-// ── Gate ────────────────────────────────────────────────────────────
-function unlock() {
-  const val = document.getElementById('gateInput').value;
-  if (val === FAMILY_PASSWORD) {
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeUrl(u) { u = String(u || '').trim(); return /^https?:\/\//i.test(u) ? u : ''; }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2600); }
+function isDark() { return !document.body.classList.contains('light'); }
+
+// theme first so the gate matches
+if (ls('travelTheme') === 'light') document.body.classList.add('light');
+
+// ── Firebase + sign-in ──────────────────────────────────────────────
+firebase.initializeApp(firebaseConfig);
+auth = firebase.auth();
+db = firebase.firestore();
+
+auth.onAuthStateChanged(user => {
+  const btn = document.getElementById('gateBtn');
+  if (user) {
     document.getElementById('gate').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    initFirebase();
-    initMap();
+    const av = document.getElementById('avatar');
+    av.title = 'Signed in as ' + (user.email || user.displayName || 'you') + ' — tap to sign out';
+    av.innerHTML = user.photoURL ? '<img class="avatar" src="' + esc(user.photoURL) + '" alt="" referrerpolicy="no-referrer">' : esc((user.displayName || user.email || '?').slice(0, 1).toUpperCase());
+    if (!appStarted) { appStarted = true; initMap(); }
     loadTrips();
   } else {
-    document.getElementById('gateError').textContent = 'Incorrect password.';
-    document.getElementById('gateInput').value = '';
+    document.getElementById('app').classList.remove('visible');
+    document.getElementById('gate').style.display = 'flex';
+    btn.disabled = false;
+    btn.innerHTML = '<span style="font-size:1rem;">G</span> Sign in with Google';
+  }
+});
+
+async function signIn() {
+  const btn = document.getElementById('gateBtn'), err = document.getElementById('gateError');
+  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Opening Google…';
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (e) {
+    if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+      try { await auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; }
+    }
+    if (!(e && e.code === 'auth/popup-closed-by-user')) err.textContent = 'Sign-in failed: ' + (e && (e.message || e.code) || e);
+    btn.disabled = false; btn.innerHTML = '<span style="font-size:1rem;">G</span> Sign in with Google';
   }
 }
-document.getElementById('gateInput').focus();
-
-// ── Firebase ────────────────────────────────────────────────────────
-function initFirebase() {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
+function signOutAsk() {
+  const u = auth.currentUser;
+  if (u && confirm('Sign out ' + (u.email || '') + ' from the Travel Map?\n(This also signs you out of the Secure app in this browser.)')) auth.signOut();
 }
 
 // ── Theme ────────────────────────────────────────────────────────────
 function toggleTheme() {
-  isDark = !isDark;
-  document.body.classList.toggle('light', !isDark);
-  updateTileFilter();
-}
-function updateTileFilter() {
-  const f = isDark
-    ? 'brightness(0.6) invert(1) hue-rotate(200deg) saturate(0.4) contrast(0.85)'
-    : 'none';
-  document.querySelectorAll('.leaflet-tile-pane').forEach(el => el.style.filter = f);
+  document.body.classList.toggle('light');
+  ls('travelTheme', isDark() ? 'dark' : 'light');
+  if (tiles) tiles.setUrl(isDark() ? TILES.dark : TILES.light);
 }
 
 // ── Map ──────────────────────────────────────────────────────────────
+function fitMinZoom() {
+  // smallest zoom at which the world still fills the box (no grey bands)
+  const el = document.getElementById('map');
+  const z = Math.ceil(Math.log2(Math.max(el.clientWidth, el.clientHeight * 1.15) / 256));
+  map.setMinZoom(Math.max(1, Math.min(z, 4)));
+}
 function initMap() {
-  map = L.map('map', { zoomControl: true, attributionControl: true })
-          .setView([20, 10], 2);
+  map = L.map('map', { zoomControl: false, worldCopyJump: true, maxBounds: [[-85, -400], [85, 400]], maxBoundsViscosity: 1, zoomSnap: 0.5 })
+          .setView([25, 10], 2);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  tiles = L.tileLayer(isDark() ? TILES.dark : TILES.light, { attribution: TILE_ATTR, maxZoom: 18, subdomains: 'abcd' }).addTo(map);
+  fitMinZoom();
+  if (map.getZoom() < map.getMinZoom()) map.setZoom(map.getMinZoom());
+  window.addEventListener('resize', () => { map.invalidateSize(); fitMinZoom(); });
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 18,
-  }).addTo(map);
-
-  // Apply dark filter after tiles load
-  map.on('tileload', () => setTimeout(updateTileFilter, 100));
-  setTimeout(updateTileFilter, 600);
-
-  // Click map → fill coords in modal
-  map.on('click', (e) => {
-    clickedLat = e.latlng.lat.toFixed(4);
-    clickedLng = e.latlng.lng.toFixed(4);
-    if (document.getElementById('modalOverlay').classList.contains('open')) {
-      document.getElementById('fLat').value = clickedLat;
-      document.getElementById('fLng').value = clickedLng;
-      document.getElementById('coordHint').textContent = `✓ Set to ${clickedLat}, ${clickedLng}`;
-    }
-    // Close detail if open and clicking map
-    if (!document.getElementById('modalOverlay').classList.contains('open')) {
-      closeDetail();
-    }
+  map.on('click', e => {
+    if (picking) { setCoords(e.latlng.lat, e.latlng.lng); endPick(); return; }
+    closeDetail();
   });
-
-  // Color picker
   renderColorPicker();
+  if (!ls('travelHintSeen')) { showHint('Tap a pin to read the story · ☰ Trips lists every trip', 6000); ls('travelHintSeen', '1'); }
+}
+function showHint(text, ms) {
+  const h = document.getElementById('mapHint');
+  h.textContent = text; h.classList.remove('hide');
+  clearTimeout(h._h); if (ms) h._h = setTimeout(() => h.classList.add('hide'), ms);
+}
+function pinIcon(color, active) {
+  const s = active ? 40 : 32;
+  return L.divIcon({
+    html: '<div style="width:' + s + 'px;height:' + s + 'px;background:' + color + ';border-radius:50% 50% 50% 0;transform:rotate(-45deg);' +
+          'border:3px solid rgba(0,0,0,.28);box-shadow:0 4px 14px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;">' +
+          '<span style="transform:rotate(45deg);font-size:' + (active ? 15 : 12) + 'px;color:#1c1814;">✈</span></div>',
+    className: '', iconSize: [s, s], iconAnchor: [s / 2, s], tooltipAnchor: [0, -s - 4]
+  });
 }
 
-// ── Color Picker ─────────────────────────────────────────────────────
+// ── Load ────────────────────────────────────────────────────────────
+async function loadTrips() {
+  showMsg('<div style="font-size:2rem;">⏳</div><p style="margin:10px 0 0;">Loading your trips…</p>');
+  try {
+    const snap = await db.collection('travel_map').get();
+    trips = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    hideMsg();
+    renderAll(true);
+  } catch (e) {
+    console.error('Firestore load error:', e);
+    const denied = e && (e.code === 'permission-denied' || /permission/i.test(e.message || ''));
+    const u = auth.currentUser;
+    showMsg(denied
+      ? '<div style="font-size:2rem;">🔒</div><h3>No access yet</h3><p>The database rules don\'t allow this account to read the travel map yet. Add the <b>travel_map</b> rule in Firebase (Firestore → Rules). This account\'s id:</p><p><code>' + esc(u ? u.uid : '') + '</code></p><button class="btn" onclick="loadTrips()">Try again</button>'
+      : '<div style="font-size:2rem;">⚠️</div><h3>Couldn\'t load trips</h3><p>' + esc(e && (e.message || e.code) || e) + '</p><button class="btn" onclick="loadTrips()">Try again</button>');
+    setStats();
+  }
+}
+function showMsg(html) { const m = document.getElementById('mapMsg'); m.innerHTML = html; m.style.display = 'block'; }
+function hideMsg() { document.getElementById('mapMsg').style.display = 'none'; }
+
+// ── Render ──────────────────────────────────────────────────────────
+function setStats() {
+  const countries = [...new Set(trips.map(t => String(t.country || '').trim().toLowerCase()).filter(Boolean))];
+  document.getElementById('statTrips').textContent = trips.length;
+  document.getElementById('statCountries').textContent = countries.length;
+  const years = trips.map(t => parseInt(String(t.date || '').slice(0, 4))).filter(Boolean);
+  const pill = document.getElementById('statYearsPill');
+  if (years.length) {
+    const a = Math.min(...years), b = Math.max(...years);
+    document.getElementById('statYears').textContent = a === b ? a : a + '–' + b;
+    pill.style.display = 'flex';
+  } else pill.style.display = 'none';
+  const dl = document.getElementById('countryList');
+  dl.innerHTML = [...new Set(trips.map(t => t.country).filter(Boolean))].sort().map(c => '<option value="' + esc(c) + '">').join('');
+}
+function renderAll(fit) {
+  setStats();
+  if (!trips.length) {
+    showMsg('<div style="font-size:2.6rem;">🗺️</div><h3>No trips yet</h3><p>Add your first adventure and it will appear as a pin on the map.</p><button class="btn btn-accent" onclick="openModal()">+ Add First Trip</button>');
+  }
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+  const pts = [];
+  trips.forEach(t => {
+    const lat = Number(t.lat), lng = Number(t.lng);
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
+    const m = L.marker([lat, lng], { icon: pinIcon(t.color || PIN_COLORS[0], t.id === activeId), riseOnHover: true }).addTo(map);
+    m.bindTooltip('<b>' + esc(t.title) + '</b><br><small>' + esc(t.country) + ' · ' + fmtDate(t.date) + '</small>', { direction: 'top' });
+    m.on('click', () => showDetail(t.id));
+    markers[t.id] = m;
+    pts.push([lat, lng]);
+  });
+  if (fit && pts.length) {
+    if (pts.length === 1) map.setView(pts[0], 5);
+    else map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 6 });
+  }
+  renderList();
+}
+function renderList() {
+  const q = (document.getElementById('listSearch').value || '').trim().toLowerCase();
+  const list = trips.filter(t => !q || [t.title, t.country, t.story].join(' ').toLowerCase().includes(q));
+  const body = document.getElementById('listBody');
+  if (!list.length) { body.innerHTML = '<div class="list-empty">' + (trips.length ? 'No trip matches “' + esc(q) + '”.' : 'No trips yet.') + '</div>'; return; }
+  let html = '', year = null;
+  list.forEach(t => {
+    const y = String(t.date || '').slice(0, 4) || '—';
+    if (y !== year) { year = y; html += '<div class="list-year">' + esc(y) + '</div>'; }
+    const ph = (t.photos || []).map(safeUrl).filter(Boolean)[0];
+    html += '<div class="list-item' + (t.id === activeId ? ' active' : '') + '" onclick="showDetail(\'' + esc(t.id) + '\', true)">' +
+      (ph ? '<img class="list-thumb" src="' + esc(ph) + '" alt="" loading="lazy" data-color="' + esc(t.color || PIN_COLORS[0]) + '" onerror="this.outerHTML=\'<span class=&quot;list-dot&quot; style=&quot;background:\'+this.dataset.color+\'&quot;></span>\'">'
+          : '<span class="list-dot" style="background:' + esc(t.color || PIN_COLORS[0]) + ';"></span>') +
+      '<div><div class="list-name">' + esc(t.title) + '</div><div class="list-meta">' + esc(t.country) + ' · ' + fmtDate(t.date) + '</div></div></div>';
+  });
+  body.innerHTML = html;
+}
+function toggleList(open) {
+  const l = document.getElementById('list');
+  const on = open === undefined ? !l.classList.contains('open') : open;
+  l.classList.toggle('open', on);
+  document.getElementById('listBtn').classList.toggle('on', on);
+  if (on && window.innerWidth <= 640) closeDetail();
+}
+
+// ── Detail ──────────────────────────────────────────────────────────
+function showDetail(id, fromList) {
+  const t = trips.find(x => x.id === id);
+  if (!t) return;
+  const prev = activeId; activeId = id;
+  if (prev && markers[prev]) { const p = trips.find(x => x.id === prev); markers[prev].setIcon(pinIcon((p && p.color) || PIN_COLORS[0], false)); }
+  if (markers[id]) markers[id].setIcon(pinIcon(t.color || PIN_COLORS[0], true));
+  if (window.innerWidth <= 640) toggleList(false);
+
+  const photos = (t.photos || []).map(safeUrl).filter(Boolean);
+  const idx = trips.indexOf(t);
+  const photosHtml = photos.length
+    ? '<div class="detail-photos" id="photoStrip">' + photos.map(p => '<img src="' + esc(p) + '" alt="' + esc(t.title) + '" loading="lazy" onclick="openViewer(this.src)" onerror="this.style.display=\'none\'">').join('') + '</div>' +
+      (photos.length > 1 ? '<div class="photo-dots">' + photos.map((_, i) => '<div class="photo-dot' + (i === 0 ? ' active' : '') + '"></div>').join('') + '</div>' : '')
+    : '<div class="detail-no-photo">✈️</div>';
+  document.getElementById('detailInner').innerHTML = photosHtml +
+    '<div class="detail-body">' +
+      '<div class="detail-tag">📍 ' + esc(t.country) + '</div>' +
+      '<div class="detail-title">' + esc(t.title) + '</div>' +
+      '<div class="detail-meta"><span>📅 ' + fmtDate(t.date) + '</span><span>🌐 ' + Number(t.lat).toFixed(2) + '°, ' + Number(t.lng).toFixed(2) + '°</span></div>' +
+      '<div class="detail-story">' + (t.story ? esc(t.story) : '<em style="color:var(--ink3)">No story written yet.</em>') + '</div>' +
+    '</div>' +
+    (trips.length > 1 ? '<div class="detail-nav"><button class="btn" ' + (idx >= trips.length - 1 ? 'disabled style="opacity:.4"' : '') + ' onclick="stepTrip(1)">← Older</button>' +
+      '<button class="btn" ' + (idx <= 0 ? 'disabled style="opacity:.4"' : '') + ' onclick="stepTrip(-1)">Newer →</button></div>' : '') +
+    '<div class="detail-footer">' +
+      '<button class="btn" onclick="openModal(\'' + esc(t.id) + '\')">✏️ Edit</button>' +
+      '<button class="btn btn-danger" onclick="deleteTrip(\'' + esc(t.id) + '\')">🗑 Delete</button>' +
+    '</div>';
+  const strip = document.getElementById('photoStrip');
+  if (strip && photos.length > 1) strip.addEventListener('scroll', () => {
+    const i = Math.round(strip.scrollLeft / strip.clientWidth);
+    document.querySelectorAll('.photo-dot').forEach((d, k) => d.classList.toggle('active', k === i));
+  });
+  const d = document.getElementById('detail'); d.classList.add('open'); d.scrollTop = 0;
+  renderList();
+  const lat = Number(t.lat), lng = Number(t.lng);
+  if (isFinite(lat) && isFinite(lng)) map.flyTo([lat, lng], Math.max(map.getZoom(), 5), { duration: fromList ? 1.2 : 0.8 });
+}
+function stepTrip(dir) {
+  const i = trips.findIndex(x => x.id === activeId);
+  const n = trips[i + dir];
+  if (n) showDetail(n.id, true);
+}
+function closeDetail() {
+  document.getElementById('detail').classList.remove('open');
+  if (activeId && markers[activeId]) { const t = trips.find(x => x.id === activeId); markers[activeId].setIcon(pinIcon((t && t.color) || PIN_COLORS[0], false)); }
+  activeId = null;
+  renderList();
+}
+function openViewer(src) { document.getElementById('viewerImg').src = src; document.getElementById('viewer').classList.add('open'); }
+
+// ── Modal (add / edit) ──────────────────────────────────────────────
 function renderColorPicker() {
-  const row = document.getElementById('colorRow');
-  row.innerHTML = PIN_COLORS.map(c =>
-    `<div class="color-opt ${c===selectedColor?'selected':''}"
-      style="background:${c};${c==='#ffffff'?'border:2px solid #888;':''}"
-      onclick="selectColor('${c}',this)"></div>`
-  ).join('');
+  document.getElementById('colorRow').innerHTML = PIN_COLORS.map(c =>
+    '<div class="color-opt' + (c === selectedColor ? ' selected' : '') + '" style="background:' + c + ';' + (c === '#ffffff' ? 'box-shadow:inset 0 0 0 1px #888;' : '') + '" onclick="selectColor(\'' + c + '\',this)"></div>').join('');
 }
 function selectColor(c, el) {
   selectedColor = c;
   document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('selected'));
   el.classList.add('selected');
 }
-
-// ── Create Pin Icon ───────────────────────────────────────────────────
-function pinIcon(color) {
-  return L.divIcon({
-    html: `<div style="
-      width:34px;height:34px;
-      background:${color};
-      border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);
-      border:3px solid rgba(0,0,0,0.3);
-      box-shadow:0 4px 14px rgba(0,0,0,0.45);
-      display:flex;align-items:center;justify-content:center;">
-      <span style="transform:rotate(45deg);font-size:13px;">✈</span>
-    </div>`,
-    className:'',
-    iconSize:[34,34],
-    iconAnchor:[17,34],
-    popupAnchor:[0,-38],
-  });
-}
-
-// ── Load Trips ────────────────────────────────────────────────────────
-async function loadTrips() {
-  try {
-    const snap = await db.collection('travel_map')
-      .orderBy('date','desc').get();
-    trips = snap.docs.map(d => ({id:d.id,...d.data()}));
-    renderAll();
-  } catch(e) {
-    console.error('Firebase load error:', e);
-  }
-}
-
-// ── Render All ────────────────────────────────────────────────────────
-function renderAll() {
-  // Stats
-  const countries = [...new Set(trips.map(t => t.country).filter(Boolean))];
-  document.getElementById('statTrips').textContent     = trips.length;
-  document.getElementById('statCountries').textContent = countries.length;
-
-  // Empty state
-  document.getElementById('mapEmpty').style.display =
-    trips.length === 0 ? 'block' : 'none';
-
-  // Clear old markers
-  Object.values(markers).forEach(m => map.removeLayer(m));
-  markers = {};
-
-  // Add markers
-  trips.forEach(t => {
-    if (!t.lat || !t.lng) return;
-    const m = L.marker([t.lat, t.lng], {
-      icon: pinIcon(t.color || PIN_COLORS[0])
-    }).addTo(map);
-    m.bindTooltip(`<b>${t.title}</b><br><small>${t.country} · ${fmtDate(t.date)}</small>`,
-      {direction:'top', offset:[0,-38], className:'leaflet-tooltip'});
-    m.on('click', () => showDetail(t.id));
-    markers[t.id] = m;
-  });
-}
-
-// ── Detail Panel ──────────────────────────────────────────────────────
-function showDetail(id) {
-  const t = trips.find(x => x.id === id);
-  if (!t) return;
-  activeId = id;
-
-  const photos = (t.photos || []).filter(p => p);
-
-  let photosHtml = '';
-  if (photos.length > 0) {
-    photosHtml = `
-      <div class="detail-photos" id="photoStrip">
-        ${photos.map(p =>
-          `<img src="${p}" alt="${t.title}"
-            onerror="this.style.display='none'">`
-        ).join('')}
-      </div>
-      ${photos.length > 1 ? `<div class="photo-dots">
-        ${photos.map((_,i) =>
-          `<div class="photo-dot ${i===0?'active':''}" id="dot${i}"></div>`
-        ).join('')}
-      </div>` : ''}`;
-  } else {
-    photosHtml = `<div class="detail-no-photo">✈️</div>`;
-  }
-
-  document.getElementById('detailInner').innerHTML = `
-    ${photosHtml}
-    <div class="detail-body">
-      <div class="detail-tag">📍 ${t.country}</div>
-      <div class="detail-title">${t.title}</div>
-      <div class="detail-meta">
-        <span>📅 ${fmtDate(t.date)}</span>
-        <span>🌐 ${Number(t.lat).toFixed(2)}°, ${Number(t.lng).toFixed(2)}°</span>
-      </div>
-      <div class="detail-story">${t.story || '<em style="color:var(--ink3)">No story written yet.</em>'}</div>
-    </div>
-    <div class="detail-footer">
-      <button class="btn" style="color:var(--red);border-color:var(--red);"
-        onclick="deleteTrip('${t.id}')">🗑 Delete</button>
-    </div>`;
-
-  // Scroll dots sync
-  if (photos.length > 1) {
-    const strip = document.getElementById('photoStrip');
-    strip.addEventListener('scroll', () => {
-      const idx = Math.round(strip.scrollLeft / strip.clientWidth);
-      document.querySelectorAll('.photo-dot').forEach((d,i) => {
-        d.classList.toggle('active', i === idx);
-      });
-    });
-  }
-
-  document.getElementById('detail').classList.add('open');
-
-  // Fly to pin
-  map.flyTo([t.lat, t.lng], Math.max(map.getZoom(), 5), {duration:1});
-}
-
-function closeDetail() {
-  document.getElementById('detail').classList.remove('open');
-  activeId = null;
-}
-
-// ── Modal ─────────────────────────────────────────────────────────────
-function openModal() {
+function openModal(id) {
+  editId = id || null;
+  const t = id ? trips.find(x => x.id === id) : null;
+  document.getElementById('modalTitle').textContent = t ? '✏️ Edit Trip' : '✈️ Add New Adventure';
+  document.getElementById('saveBtn').textContent = t ? 'Save changes' : 'Save Trip 🗺️';
+  document.getElementById('fTitle').value = t ? (t.title || '') : '';
+  document.getElementById('fCountry').value = t ? (t.country || '') : '';
+  document.getElementById('fDate').value = t ? (t.date || '') : '';
+  document.getElementById('fLat').value = t && t.lat != null ? t.lat : '';
+  document.getElementById('fLng').value = t && t.lng != null ? t.lng : '';
+  document.getElementById('fStory').value = t ? (t.story || '') : '';
+  document.getElementById('photoUrlList').innerHTML = '';
+  const ph = t ? (t.photos || []) : [];
+  (ph.length ? ph : ['']).forEach(addPhotoUrl);
+  selectedColor = t && t.color ? t.color : PIN_COLORS[0];
+  renderColorPicker();
+  document.getElementById('coordHint').textContent = t ? 'Current pin shown on the map' : 'or type the coordinates';
   document.getElementById('modalOverlay').classList.add('open');
-  document.getElementById('coordHint').textContent = 'Click map to auto-fill ↓';
+  setTimeout(() => document.getElementById('fTitle').focus(), 50);
 }
 function closeModal() {
+  endPick(true);
   document.getElementById('modalOverlay').classList.remove('open');
-  clearForm();
+  if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
+  editId = null;
 }
-function addPhotoUrl() {
-  const list = document.getElementById('photoUrlList');
+function addPhotoUrl(val) {
   const row = document.createElement('div');
   row.className = 'photo-url-row';
-  row.innerHTML = `
-    <input class="form-input" placeholder="https://... paste image URL">
-    <button class="add-url-btn" onclick="this.parentElement.remove()">×</button>`;
-  list.appendChild(row);
+  row.innerHTML = '<input class="form-input" placeholder="https://… paste a photo link"><button class="small-btn" type="button" title="Remove">×</button>';
+  row.firstChild.value = val || '';
+  row.lastChild.onclick = () => { if (document.querySelectorAll('#photoUrlList .photo-url-row').length > 1) row.remove(); else row.firstChild.value = ''; };
+  document.getElementById('photoUrlList').appendChild(row);
 }
-function clearForm() {
-  ['fTitle','fCountry','fDate','fLat','fLng','fStory'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('photoUrlList').innerHTML =
-    '<div class="photo-url-row"><input class="form-input" placeholder="https://... paste image URL"></div>';
-  selectedColor = PIN_COLORS[0];
-  renderColorPicker();
+function startPick() {
+  picking = true;
+  document.getElementById('modalOverlay').classList.add('picking');
+  document.getElementById('mapContainer').classList.add('picking');
+  closeDetail(); toggleList(false);
+  showHint('📍 Tap the spot on the map  ·  Esc to cancel', 0);
 }
+function endPick(silent) {
+  if (!picking) return;
+  picking = false;
+  document.getElementById('modalOverlay').classList.remove('picking');
+  document.getElementById('mapContainer').classList.remove('picking');
+  document.getElementById('mapHint').classList.add('hide');
+}
+function setCoords(lat, lng) {
+  lat = Math.round(lat * 10000) / 10000;
+  lng = ((lng + 540) % 360) - 180;                     // wrap copies of the world back to −180…180
+  lng = Math.round(lng * 10000) / 10000;
+  document.getElementById('fLat').value = lat;
+  document.getElementById('fLng').value = lng;
+  document.getElementById('coordHint').textContent = '✓ Pin set at ' + lat + ', ' + lng;
+  if (pickMarker) map.removeLayer(pickMarker);
+  pickMarker = L.marker([lat, lng], { icon: pinIcon(selectedColor, true), interactive: false }).addTo(map);
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (picking) { endPick(); return; }
+  if (document.getElementById('viewer').classList.contains('open')) { document.getElementById('viewer').classList.remove('open'); return; }
+  if (document.getElementById('modalOverlay').classList.contains('open')) { closeModal(); return; }
+  closeDetail();
+});
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
 
-// ── Save Trip ─────────────────────────────────────────────────────────
 async function saveTrip() {
-  const title   = document.getElementById('fTitle').value.trim();
+  const title = document.getElementById('fTitle').value.trim();
   const country = document.getElementById('fCountry').value.trim();
-  const date    = document.getElementById('fDate').value;
-  const lat     = parseFloat(document.getElementById('fLat').value);
-  const lng     = parseFloat(document.getElementById('fLng').value);
-  const story   = document.getElementById('fStory').value.trim();
-
-  if (!title || !country || !date || isNaN(lat) || isNaN(lng)) {
-    alert('Please fill in Title, Country, Date, and map coordinates.');
-    return;
-  }
-
-  const photos = Array.from(
-    document.querySelectorAll('#photoUrlList input')
-  ).map(i => i.value.trim()).filter(v => v);
-
+  const date = document.getElementById('fDate').value;
+  const lat = parseFloat(document.getElementById('fLat').value);
+  const lng = parseFloat(document.getElementById('fLng').value);
+  const story = document.getElementById('fStory').value.trim();
+  if (!title || !country || !date || isNaN(lat) || isNaN(lng)) { alert('Please fill in Title, Country, Month, and the location (Pick on map).'); return; }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert('Latitude must be between −90 and 90, longitude between −180 and 180.'); return; }
+  const photos = Array.from(document.querySelectorAll('#photoUrlList input')).map(i => i.value.trim()).filter(Boolean);
+  const bad = photos.filter(p => !safeUrl(p));
+  if (bad.length) { alert('Photo links must start with https://\n\n' + bad.join('\n')); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
   try {
-    await db.collection('travel_map').add({
-      title, country, date, lat, lng, story, photos,
-      color: selectedColor,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    const data = { title, country, date, lat, lng, story, photos, color: selectedColor };
+    let id = editId;
+    const wasEdit = !!editId;
+    if (editId) {
+      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('travel_map').doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      id = (await db.collection('travel_map').add(data)).id;
+    }
     closeModal();
     await loadTrips();
-  } catch(e) {
-    alert('Error saving: ' + e.message);
-  }
+    toast(wasEdit ? 'Changes saved' : 'Trip saved ✈️');
+    if (id) showDetail(id, true);
+  } catch (e) {
+    alert('Error saving: ' + (e.message || e));
+  } finally { btn.disabled = false; }
 }
-
-// ── Delete Trip ───────────────────────────────────────────────────────
 async function deleteTrip(id) {
-  if (!confirm('Delete this trip permanently?')) return;
+  const t = trips.find(x => x.id === id);
+  if (!confirm('Delete “' + (t ? t.title : 'this trip') + '” permanently?')) return;
   try {
     await db.collection('travel_map').doc(id).delete();
     closeDetail();
     await loadTrips();
-  } catch(e) {
-    alert('Error deleting: ' + e.message);
-  }
+    toast('Trip deleted');
+  } catch (e) { alert('Error deleting: ' + (e.message || e)); }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
 function fmtDate(d) {
   if (!d) return '';
-  const [y, m] = d.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun',
-                  'Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${months[parseInt(m)-1]||''} ${y}`;
+  const [y, m] = String(d).split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return ((months[parseInt(m) - 1] || '') + ' ' + (y || '')).trim();
 }
-
-// Hide map hint after 5s
-setTimeout(() => {
-  const h = document.getElementById('mapHint');
-  if (h) h.style.opacity = '0';
-}, 5000);
-
-// Close modal clicking outside
-document.getElementById('modalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
-});
 </script>
 </body>
 </html>
