@@ -1,0 +1,493 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luong Family</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f0f4f0; --surface: #ffffff; --surface-alt: #f7faf7;
+  --border: #e2e8e2; --border-strong: #c8d4c8;
+  --ink: #0f1f0f; --ink-2: #3a4f3a; --ink-3: #6b7f6b; --ink-4: #9aaa9a;
+  --green: #1a7a3c; --green-light: #e8f5ee; --green-mid: #4caf72;
+  --red: #c0392b; --red-light: #fdf0ee;
+  --amber: #d97706; --amber-light: #fef3e2;
+  --blue: #1d6fa4; --blue-light: #e8f3fb;
+  --purple: #7c3aed; --purple-light: #f0ebff;
+  --teal: #0f8a7e; --teal-light: #e3f5f2;
+  --mono: "DM Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0a0f0a; --surface:#111811; --surface-alt:#161e16;
+    --border:#1e2a1e; --border-strong:#2a3a2a;
+    --ink:#e8f0e8; --ink-2:#b0c4b0; --ink-3:#708070; --ink-4:#445044;
+    --green:#4caf72; --green-light:#0d2016; --green-mid:#2d8a50;
+    --red:#e05c4a; --red-light:#1f0d0a;
+    --amber:#f5a623; --amber-light:#1f1505;
+    --blue:#5aabdf; --blue-light:#0a1820;
+    --purple:#a78bfa; --purple-light:#1e1040;
+    --teal:#3cc4b4; --teal-light:#0a1f1c;
+  }
+}
+html, body { height:100%; background:var(--bg); color:var(--ink); font-family:"Sora",sans-serif; }
+.page { min-height:100vh; display:flex; flex-direction:column; max-width:1100px; margin:0 auto; padding:0 28px; }
+
+/* Top bar */
+.topbar { display:flex; align-items:center; justify-content:space-between;
+  padding:20px 0 16px; border-bottom:1px solid var(--border);
+  opacity:0; animation:fadeIn 0.6s ease forwards; }
+.topbar-brand { display:flex; align-items:center; gap:10px; }
+.topbar-logo { width:28px; height:28px; background:var(--green); border-radius:6px;
+  display:flex; align-items:center; justify-content:center; }
+.topbar-logo svg { width:14px; height:14px; }
+.topbar-name { font-size:0.85rem; font-weight:600; color:var(--ink); letter-spacing:-0.01em; }
+.topbar-tag { font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-4); font-family:var(--mono); }
+.topbar-status { display:flex; align-items:center; gap:6px; }
+.status-dot { width:6px; height:6px; border-radius:50%; background:var(--green-mid); animation:pulse 2s ease infinite; }
+.status-text { font-size:0.7rem; color:var(--ink-3); font-family:var(--mono); }
+.status-dot.closed { background:var(--ink-4); animation:none; }
+.status-dot.pre    { background:var(--amber); }
+.tick-item.show-tip .tick-tooltip { opacity:1; }
+.card-sub-note { font-family:var(--mono); font-size:0.6rem; color:var(--ink-4); margin:-18px 0 22px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* Hero */
+.hero { padding:48px 0 36px; border-bottom:1px solid var(--border);
+  opacity:0; animation:fadeUp 0.7s ease 0.1s forwards; }
+.hero-eyebrow { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.hero-eyebrow-line { width:20px; height:1px; background:var(--green); }
+.hero-eyebrow-text { font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--green); font-weight:600; font-family:var(--mono); }
+.hero-title { font-size:clamp(2.2rem,5.5vw,3.8rem); font-weight:700; line-height:1.05;
+  letter-spacing:-0.03em; color:var(--ink); margin-bottom:14px; }
+.hero-title span { color:var(--green); }
+.hero-sub { font-size:0.875rem; color:var(--ink-3); max-width:480px; line-height:1.65; font-weight:300; }
+
+/* Ticker */
+.ticker-wrap { border-bottom:1px solid var(--border); padding-bottom:12px;
+  opacity:0; animation:fadeIn 0.6s ease 0.25s forwards; }
+.ticker-header { display:flex; align-items:center; justify-content:space-between; padding:10px 0 8px; }
+.ticker-label { font-size:0.58rem; letter-spacing:0.2em; text-transform:uppercase;
+  font-family:var(--mono); color:var(--ink-4); }
+.ticker-note { font-size:0.58rem; color:var(--ink-4); font-family:var(--mono); font-style:italic; }
+.ticker-row { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.ticker-row .tick-loading { grid-column:1 / -1; }
+
+/* Each tick item */
+.tick-item {
+  position:relative;
+  display:flex; flex-direction:column; gap:3px;
+  padding:10px 14px; border:1px solid var(--border);
+  border-radius:8px; background:var(--surface);
+  cursor:default; transition:border-color 0.2s, background 0.2s;
+  min-width:0;
+}
+.tick-item:hover { border-color:var(--border-strong); background:var(--surface-alt); }
+
+.tick-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tick-sym { font-family:var(--mono); font-size:0.68rem; font-weight:500; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tick-chg { font-family:var(--mono); font-size:0.65rem; padding:1px 5px; border-radius:3px; font-weight:500; white-space:nowrap; }
+.tick-chg.up   { background:var(--green-light); color:var(--green); }
+.tick-chg.dn   { background:var(--red-light);   color:var(--red); }
+.tick-chg.vix-calm   { background:var(--green-light); color:var(--green); }
+.tick-chg.vix-normal { background:var(--border); color:var(--ink-3); }
+.tick-chg.vix-warn   { background:var(--amber-light); color:var(--amber); }
+.tick-chg.vix-fear   { background:var(--red-light); color:var(--red); font-weight:700; letter-spacing:0.05em; }
+
+.tick-val { font-family:var(--mono); font-size:0.78rem; color:var(--ink); font-weight:600; }
+.tick-caption { font-size:0.6rem; color:var(--ink-4); line-height:1.3; font-weight:300; }
+
+/* Tooltip */
+.tick-tooltip {
+  position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--bg); font-size:0.65rem; line-height:1.45;
+  padding:8px 10px; border-radius:6px; white-space:nowrap; z-index:100;
+  opacity:0; pointer-events:none; transition:opacity 0.15s ease;
+  font-family:var(--mono); max-width:220px; white-space:normal; text-align:center;
+  min-width:160px;
+}
+.tick-tooltip::after {
+  content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:var(--ink);
+}
+.tick-item:hover .tick-tooltip { opacity:1; }
+
+.tick-loading { font-family:var(--mono); font-size:0.68rem; color:var(--ink-4); padding:12px 0; }
+
+/* Cards */
+.grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px;
+  background:var(--border); border:1px solid var(--border); margin:28px 0;
+  border-radius:12px; overflow:hidden; opacity:0; animation:fadeUp 0.7s ease 0.35s forwards; }
+.card { background:var(--surface); padding:28px 24px 24px; text-decoration:none;
+  color:var(--ink); display:flex; flex-direction:column; transition:background 0.2s ease; position:relative; }
+.card:hover { background:var(--surface-alt); }
+.card::after { content:""; position:absolute; bottom:0; left:24px; right:24px;
+  height:2px; border-radius:2px 2px 0 0; opacity:0; transition:opacity 0.2s ease; }
+.card--stocks::after { background:var(--green); }
+.card--retire::after { background:var(--blue); }
+.card--travel::after  { background:var(--amber); }
+.card--networth::after { background:var(--purple); }
+.card--budget::after { background:var(--teal); }
+.card--pi::after { background:var(--ink-3); }
+.card:hover::after { opacity:1; }
+.card-num { font-family:var(--mono); font-size:0.6rem; color:var(--ink-4); letter-spacing:0.1em; margin-bottom:24px; display:block; }
+.card-icon-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.card-badge { font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase;
+  font-family:var(--mono); padding:3px 8px; border-radius:4px; font-weight:500; }
+.card--stocks .card-badge { background:var(--green-light); color:var(--green); }
+.card--retire .card-badge  { background:var(--blue-light);  color:var(--blue); }
+.card--travel .card-badge    { background:var(--amber-light);  color:var(--amber); }
+.card--networth .card-badge  { background:var(--purple-light); color:var(--purple); }
+.card--budget .card-badge    { background:var(--teal-light); color:var(--teal); }
+.card--pi .card-badge        { background:var(--border); color:var(--ink-2); }
+.card-title { font-size:1.15rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); margin-bottom:8px; line-height:1.2; }
+.card-desc { font-size:0.775rem; color:var(--ink-3); line-height:1.6; font-weight:300; margin-bottom:28px; }
+.card-cta { display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
+.card-cta-label { font-size:0.7rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; font-family:var(--mono); }
+.card--stocks .card-cta-label { color:var(--green); }
+.card--retire .card-cta-label { color:var(--blue); }
+.card--travel .card-cta-label   { color:var(--amber); }
+.card--networth .card-cta-label { color:var(--purple); }
+.card--budget .card-cta-label   { color:var(--teal); }
+.card--pi .card-cta-label       { color:var(--ink-2); }
+.card-arrow { width:28px; height:28px; border-radius:50%; border:1px solid var(--border-strong);
+  display:flex; align-items:center; justify-content:center; transition:all 0.2s ease; }
+.card:hover .card-arrow { transform:translateX(3px); }
+.card-arrow svg { width:10px; height:10px; }
+.spark { display:flex; align-items:flex-end; gap:2px; height:28px; }
+.spark-bar { flex:1; border-radius:1px 1px 0 0; min-width:3px; }
+.plane-icon { font-size:22px; line-height:1; }
+
+/* VIX legend */
+.vix-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.vix-leg-item { display:flex; align-items:center; gap:4px; font-size:0.58rem; font-family:var(--mono); color:var(--ink-3); }
+.vix-dot { width:6px; height:6px; border-radius:50%; }
+
+footer { margin-top:auto; padding:20px 0 28px; border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  opacity:0; animation:fadeIn 0.6s ease 0.6s forwards; }
+.footer-l { font-size:0.68rem; color:var(--ink-4); font-family:var(--mono); }
+.footer-r { font-size:0.68rem; color:var(--ink-4); font-family:var(--mono); }
+
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@media(max-width:700px){
+  .grid{grid-template-columns:1fr}
+  .hero-title{font-size:2.1rem}
+  footer{flex-direction:column;gap:8px;align-items:flex-start}
+  .page{padding:0 16px}
+  .ticker-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(min-width:701px) and (max-width:900px){
+  .grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 14 14" fill="none">
+          <path d="M7 1L13 4.5V9.5L7 13L1 9.5V4.5L7 1Z" fill="white" opacity="0.9"/>
+          <path d="M7 4L10 5.75V9.25L7 11L4 9.25V5.75L7 4Z" fill="none" stroke="white" stroke-width="0.8"/>
+        </svg>
+      </div>
+      <div>
+        <div class="topbar-name">Luong Family</div>
+        <div class="topbar-tag">Private Dashboard</div>
+      </div>
+    </div>
+    <div class="topbar-status">
+      <div class="status-dot" id="mktDot"></div>
+      <span class="status-text" id="mktText">&nbsp;</span>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">
+      <div class="hero-eyebrow-line"></div>
+      <span class="hero-eyebrow-text">Portfolio HQ</span>
+    </div>
+    <h1 class="hero-title">Your Family<br><span>Financial Hub</span></h1>
+    <p class="hero-sub">Stocks, retirement accounts, and family memories — all in one private, secure space built just for us.</p>
+  </div>
+
+  <div class="ticker-wrap">
+    <div class="ticker-header">
+      <span class="ticker-label">Live Market Data</span>
+      <span class="ticker-note" id="tickerNote">Hover or tap a tile for details</span>
+    </div>
+    <div class="ticker-row" id="tickerRow">
+      <span class="tick-loading">Loading live market data...</span>
+    </div>
+    <div class="vix-legend" id="vixLegend" style="display:none;">
+      <span style="font-size:0.58rem;font-family:var(--mono);color:var(--ink-4);margin-right:4px;">VIX:</span>
+      <div class="vix-leg-item"><div class="vix-dot" style="background:var(--green-mid);"></div>&lt;15 Calm</div>
+      <div class="vix-leg-item"><div class="vix-dot" style="background:var(--ink-4);"></div>15-20 Normal</div>
+      <div class="vix-leg-item"><div class="vix-dot" style="background:var(--amber);"></div>20-30 Caution</div>
+      <div class="vix-leg-item"><div class="vix-dot" style="background:var(--red);"></div>&gt;30 Fear</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <a class="card card--stocks" href="https://kayson2022.github.io/stocks-etfs-mutual-secure/">
+      <span class="card-num">01 / FINANCE</span>
+      <div class="card-icon-row">
+        <div class="spark">
+          <div class="spark-bar" style="height:35%;background:var(--green-mid);opacity:0.4;"></div>
+          <div class="spark-bar" style="height:50%;background:var(--green-mid);opacity:0.5;"></div>
+          <div class="spark-bar" style="height:42%;background:var(--green-mid);opacity:0.55;"></div>
+          <div class="spark-bar" style="height:70%;background:var(--green-mid);opacity:0.6;"></div>
+          <div class="spark-bar" style="height:58%;background:var(--green-mid);opacity:0.65;"></div>
+          <div class="spark-bar" style="height:82%;background:var(--green-mid);opacity:0.7;"></div>
+          <div class="spark-bar" style="height:67%;background:var(--green-mid);opacity:0.75;"></div>
+          <div class="spark-bar" style="height:90%;background:var(--green-mid);opacity:0.85;"></div>
+          <div class="spark-bar" style="height:78%;background:var(--green-mid);opacity:0.9;"></div>
+          <div class="spark-bar" style="height:100%;background:var(--green);"></div>
+        </div>
+        <span class="card-badge">Live</span>
+      </div>
+      <h2 class="card-title">Stocks &amp;<br>Portfolio</h2>
+      <p class="card-desc">Real-time tracking for stocks, ETFs, and mutual funds. Charts, P&amp;L, dividends, smart alerts, and tax tools.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">Open app</span>
+        <div class="card-arrow" style="color:var(--green);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a class="card card--retire" href="https://kayson2022.github.io/livestocktracking.github.io/">
+      <span class="card-num">02 / RETIREMENT</span>
+      <div class="card-icon-row">
+        <div class="spark">
+          <div class="spark-bar" style="height:30%;background:var(--blue);opacity:0.4;"></div>
+          <div class="spark-bar" style="height:45%;background:var(--blue);opacity:0.5;"></div>
+          <div class="spark-bar" style="height:55%;background:var(--blue);opacity:0.55;"></div>
+          <div class="spark-bar" style="height:50%;background:var(--blue);opacity:0.6;"></div>
+          <div class="spark-bar" style="height:65%;background:var(--blue);opacity:0.65;"></div>
+          <div class="spark-bar" style="height:62%;background:var(--blue);opacity:0.7;"></div>
+          <div class="spark-bar" style="height:77%;background:var(--blue);opacity:0.75;"></div>
+          <div class="spark-bar" style="height:85%;background:var(--blue);opacity:0.85;"></div>
+          <div class="spark-bar" style="height:82%;background:var(--blue);opacity:0.9;"></div>
+          <div class="spark-bar" style="height:100%;background:var(--blue);"></div>
+        </div>
+        <span class="card-badge">Secure</span>
+      </div>
+      <h2 class="card-title">401k &amp;<br>Investment</h2>
+      <p class="card-desc">Manage your 401k, HSA, and 529 plans. Tax planning, paycheck calculator, and contribution tracker.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">Open app</span>
+        <div class="card-arrow" style="color:var(--blue);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a class="card card--networth" href="networth/gate.html">
+      <span class="card-num">03 / WEALTH</span>
+      <div class="card-icon-row">
+        <div class="plane-icon">📈</div>
+        <span class="card-badge">Private</span>
+      </div>
+      <h2 class="card-title">$3M<br>Journey</h2>
+      <p class="card-desc">Track net worth growth over time. Milestones, projections, and progress toward the $3,000,000 goal.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">View Timeline</span>
+        <div class="card-arrow" style="color:var(--purple);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+    <a class="card card--budget" href="https://kayson2022.github.io/budget-calculator/">
+      <span class="card-num">04 / BUDGET</span>
+      <div class="card-icon-row">
+        <div class="plane-icon">💳</div>
+        <span class="card-badge">Plan</span>
+      </div>
+      <h2 class="card-title">Family<br>Budget</h2>
+      <p class="card-desc">Income, monthly expenses, and savings goals — see where the money goes and how much is left to invest.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">Open app</span>
+        <div class="card-arrow" style="color:var(--teal);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a class="card card--travel" href="travel/index.html">
+      <span class="card-num">05 / MEMORIES</span>
+      <div class="card-icon-row">
+        <div class="plane-icon">&#9992;&#65039;</div>
+        <span class="card-badge">Journal</span>
+      </div>
+      <h2 class="card-title">Travel<br>Journal</h2>
+      <p class="card-desc">Family adventures, photos, and stories from every journey — documented for generations to come.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">Explore</span>
+        <div class="card-arrow" style="color:var(--amber);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a class="card card--pi" href="http://100.113.77.34:5000/home">
+      <span class="card-num">06 / COMMAND CENTER</span>
+      <div class="card-icon-row">
+        <div class="plane-icon">🖥️</div>
+        <span class="card-badge">Home network</span>
+      </div>
+      <h2 class="card-title">Pi Command<br>Center</h2>
+      <p class="card-desc">The Raspberry Pi dashboard — scanner, paper trading, Telegram reports, and the daily tools.</p>
+      <p class="card-sub-note">Opens at home or with Tailscale on.</p>
+      <div class="card-cta">
+        <span class="card-cta-label">Open</span>
+        <div class="card-arrow" style="color:var(--ink-2);">
+          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h6M5 2l3 3-3 3"/></svg>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <footer>
+    <span class="footer-l">LF &mdash; PRIVATE &mdash; <span id="footYear">2026</span></span>
+    <span class="footer-r">kayson2022.github.io/Luong-Family</span>
+  </footer>
+</div>
+
+<script>
+/* 2026-10-11: corsproxy.io stopped working ("Market data unavailable"). Quotes now come from the
+   family's own Cloudflare Worker (same one the Secure app uses): one /batch request for all tiles,
+   /raw chart calls as a fallback. Market status in the top bar is real (NYSE hours, US/Eastern). */
+(function () {
+  var WORKER = 'https://yahoo-proxy.giolamchieu1975.workers.dev';
+  var SYMBOLS = [
+    { sym:'^GSPC', label:'S&P 500', caption:'Broad US market index', tooltip:'S&P 500 — tracks 500 largest US companies. The main benchmark for the US stock market.' },
+    { sym:'^IXIC', label:'NASDAQ', caption:'Tech-heavy US index', tooltip:'NASDAQ Composite — heavily weighted toward technology and growth stocks like Apple, Microsoft, and Nvidia.' },
+    { sym:'^DJI',  label:'DOW',    caption:'30 blue-chip stocks', tooltip:'Dow Jones Industrial Average — 30 large, well-established US companies. The oldest and most widely quoted index.' },
+    { sym:'^VIX',  label:'VIX',    caption:'Market fear gauge', tooltip:'CBOE Volatility Index — expected market turbulence. Below 15 = calm, 15-20 = normal, 20-30 = caution, above 30 = fear.', isVix:true },
+    { sym:'^TNX',  label:'10Y UST', caption:'US Treasury yield', tooltip:'10-Year Treasury Yield — the interest rate on US government bonds. Rising yields can pressure stocks.', isYield:true },
+    { sym:'GLD',   label:'Gold (GLD)', caption:'Physical gold ETF', tooltip:'SPDR Gold Shares — tracks the price of gold. A safe-haven asset in times of uncertainty.' },
+    { sym:'SLV',   label:'Silver (SLV)', caption:'Physical silver ETF', tooltip:'iShares Silver Trust — tracks physical silver prices. Both a safe-haven and an industrial metal.' },
+    { sym:'USO',   label:'Oil (USO)', caption:'Crude oil futures', tooltip:'United States Oil Fund — tracks West Texas Intermediate crude oil futures.' }
+  ];
+
+  document.getElementById('footYear').textContent = new Date().getFullYear();
+
+  // ── NYSE status (holidays not included) ──
+  function etNow() { return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })); }
+  function marketState() {
+    var et = etNow(), d = et.getDay(), m = et.getHours() * 60 + et.getMinutes();
+    if (d === 0 || d === 6) return 'weekend';
+    if (m >= 570 && m < 960) return 'open';
+    if (m >= 240 && m < 570) return 'pre';
+    if (m >= 960 && m < 1200) return 'after';
+    return 'closed';
+  }
+  function localTimeOfEt(h, mi) {
+    // the viewer's local clock time for h:mi New York time today
+    var now = new Date(), et = etNow();
+    var diffMin = Math.round((now - et) / 60000);
+    var t = new Date(et.getFullYear(), et.getMonth(), et.getDate(), h, mi);
+    t = new Date(t.getTime() + diffMin * 60000);
+    return t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  function renderStatus() {
+    var st = marketState(), dot = document.getElementById('mktDot'), txt = document.getElementById('mktText');
+    dot.className = 'status-dot' + (st === 'open' ? '' : (st === 'pre' || st === 'after') ? ' pre' : ' closed');
+    txt.textContent = st === 'open' ? 'Market open · closes ' + localTimeOfEt(16, 0)
+                    : st === 'pre' ? 'Pre-market · opens ' + localTimeOfEt(9, 30)
+                    : st === 'after' ? 'After hours · market closed'
+                    : st === 'weekend' ? 'Weekend · market closed'
+                    : 'Market closed · opens ' + localTimeOfEt(9, 30);
+  }
+  renderStatus();
+  setInterval(renderStatus, 60000);
+
+  // ── quotes ──
+  function fmtNum(val, s) {
+    if (s.isVix || s.isYield) return val.toFixed(2) + (s.isYield ? '%' : '');
+    return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function vixClass(v) { return v < 15 ? 'vix-calm' : v < 20 ? 'vix-normal' : v < 30 ? 'vix-warn' : 'vix-fear'; }
+  async function viaBatch() {
+    var res = await fetch(WORKER + '/batch?symbols=' + encodeURIComponent(SYMBOLS.map(function (s) { return s.sym; }).join(',')), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var j = await res.json(), out = {};
+    ((j.quoteResponse && j.quoteResponse.result) || j.result || []).forEach(function (q) {
+      if (!q || !q.symbol || typeof q.regularMarketPrice !== 'number') return;
+      var prev = q.regularMarketPreviousClose || q.chartPreviousClose || q.regularMarketPrice;
+      out[q.symbol] = { price: q.regularMarketPrice, pct: typeof q.regularMarketChangePercent === 'number' ? q.regularMarketChangePercent : (prev ? (q.regularMarketPrice - prev) / prev * 100 : 0) };
+    });
+    return out;
+  }
+  async function viaChart(sym) {
+    var y = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1d&range=5d';
+    var res = await fetch(WORKER + '/raw?url=' + encodeURIComponent(y), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var meta = (await res.json()).chart.result[0].meta;
+    var price = meta.regularMarketPrice, prev = meta.previousClose || meta.chartPreviousClose || price;
+    return { price: price, pct: prev ? (price - prev) / prev * 100 : 0 };
+  }
+  async function loadQuotes() {
+    var data = {};
+    try { data = await viaBatch(); } catch (e) { console.warn('batch quotes failed', e); }
+    var missing = SYMBOLS.filter(function (s) { return !data[s.sym]; });
+    if (missing.length) {
+      var rs = await Promise.allSettled(missing.map(function (s) { return viaChart(s.sym); }));
+      rs.forEach(function (r, i) { if (r.status === 'fulfilled' && r.value && r.value.price) data[missing[i].sym] = r.value; });
+    }
+    return data;
+  }
+  function render(data) {
+    var row = document.getElementById('tickerRow');
+    var items = SYMBOLS.filter(function (s) { return data[s.sym]; });
+    if (!items.length) {
+      if (!row.querySelector('.tick-item')) row.innerHTML = '<span class="tick-loading">Market data unavailable right now — try again later.</span>';
+      return;
+    }
+    row.innerHTML = '';
+    items.forEach(function (s) {
+      var d = data[s.sym], up = d.pct >= 0;
+      var badge = s.isVix ? vixClass(d.price) : (up ? 'up' : 'dn');
+      var item = document.createElement('div');
+      item.className = 'tick-item';
+      item.tabIndex = 0;
+      item.innerHTML = '<div class="tick-tooltip"></div><div class="tick-top"><span class="tick-sym"></span><span class="tick-chg ' + badge + '"></span></div>' +
+                       '<div class="tick-val"></div><div class="tick-caption"></div>';
+      item.querySelector('.tick-tooltip').textContent = s.tooltip;
+      item.querySelector('.tick-sym').textContent = s.label;
+      item.querySelector('.tick-chg').textContent = (up ? '+' : '') + d.pct.toFixed(2) + '%';
+      item.querySelector('.tick-val').textContent = fmtNum(d.price, s);
+      item.querySelector('.tick-caption').textContent = s.caption;
+      item.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var on = !item.classList.contains('show-tip');
+        document.querySelectorAll('.tick-item.show-tip').forEach(function (x) { x.classList.remove('show-tip'); });
+        if (on) item.classList.add('show-tip');
+      });
+      row.appendChild(item);
+    });
+    document.getElementById('vixLegend').style.display = items.some(function (s) { return s.isVix; }) ? 'flex' : 'none';
+    var st = marketState();
+    document.getElementById('tickerNote').textContent = (st === 'open' ? 'Live · ' : 'Last close · ') + 'updated ' +
+      new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  document.addEventListener('click', function () { document.querySelectorAll('.tick-item.show-tip').forEach(function (x) { x.classList.remove('show-tip'); }); });
+
+  async function tick() {
+    try { render(await loadQuotes()); } catch (e) { render({}); }
+    setTimeout(tick, marketState() === 'open' ? 60000 : 15 * 60000);
+  }
+  tick();
+})();
+</script>
+</body>
+</html>
