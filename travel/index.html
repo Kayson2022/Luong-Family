@@ -18,7 +18,7 @@
   --border:#30363d; --ink:#e6edf3; --ink2:#8b949e; --ink3:#6e7681;
   --accent:#c9824c; --gold:#c9a84c; --green:#3fb950;
   --red:#f85149; --blue:#58a6ff; --purple:#bc8cff;
-  --map-bg:#1b1f24;
+  --map-bg:#262a2e;
   --mono:'DM Mono',monospace;
   --serif:'Playfair Display',serif;
   --sans:'Syne',sans-serif;
@@ -26,7 +26,7 @@
 .light {
   --bg:#f7f3ec; --surface:#ffffff; --surface2:#ede6d9;
   --border:#e0d6c8; --ink:#1c1814; --ink2:#6f6355; --ink3:#9a8e80;
-  --map-bg:#e8e4dc;
+  --map-bg:#aad3df;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);transition:background .3s,color .3s;}
@@ -79,6 +79,8 @@ button{font-family:inherit;}
 .map-container{flex:1;position:relative;overflow:hidden;}
 #map{position:absolute;inset:0;background:var(--map-bg);}
 .leaflet-container{background:var(--map-bg);font-family:var(--sans);}
+/* dark map: invert the light OSM tiles into a soft dark style */
+body:not(.light) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) brightness(.92) contrast(.88) saturate(.55);}
 .leaflet-tooltip{font-family:var(--sans);}
 .leaflet-bottom.leaflet-right .leaflet-control-zoom{margin-bottom:28px;}
 .map-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);
@@ -348,11 +350,10 @@ const firebaseConfig = {
   appId:             "1:326474465163:web:6d140efca04077ba8f1f98e"
 };
 const PIN_COLORS = ['#c9824c','#c9a84c','#3fb950','#58a6ff','#bc8cff','#f85149','#e05c30','#ffffff'];
-const TILES = {
-  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-};
-const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// 2026-10-11: CARTO basemaps now need an API key ("API KEY REQUIRED" tiles), so the map uses the
+// standard OpenStreetMap tiles (free, no key). Dark mode darkens them with a CSS filter on the tile pane.
+const TILE_URL  = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 // ── State ───────────────────────────────────────────────────────────
 let auth, db, map, tiles, trips = [], markers = {}, activeId = null, editId = null;
@@ -418,7 +419,6 @@ function signOutAsk() {
 function toggleTheme() {
   document.body.classList.toggle('light');
   ls('travelTheme', isDark() ? 'dark' : 'light');
-  if (tiles) tiles.setUrl(isDark() ? TILES.dark : TILES.light);
 }
 
 // ── Map ──────────────────────────────────────────────────────────────
@@ -432,7 +432,7 @@ function initMap() {
   map = L.map('map', { zoomControl: false, worldCopyJump: true, maxBounds: [[-85, -400], [85, 400]], maxBoundsViscosity: 1, zoomSnap: 0.5 })
           .setView([25, 10], 2);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-  tiles = L.tileLayer(isDark() ? TILES.dark : TILES.light, { attribution: TILE_ATTR, maxZoom: 18, subdomains: 'abcd' }).addTo(map);
+  tiles = L.tileLayer(TILE_URL, { attribution: TILE_ATTR, maxZoom: 19 }).addTo(map);
   fitMinZoom();
   if (map.getZoom() < map.getMinZoom()) map.setZoom(map.getMinZoom());
   window.addEventListener('resize', () => { map.invalidateSize(); fitMinZoom(); });
