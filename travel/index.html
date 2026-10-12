@@ -142,6 +142,12 @@ body:not(.light) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) brightne
 .video-link{display:inline-flex;align-items:center;gap:6px;margin:10px 8px 0 0;font-family:var(--mono);font-size:.72rem;color:var(--accent);text-decoration:none;
   border:1px solid var(--border);padding:6px 10px;border-radius:7px;}
 .video-link:hover{border-color:var(--accent);}
+.form-msg{display:none;border-radius:8px;padding:10px 12px;font-size:.8rem;line-height:1.5;}
+.form-msg.show{display:block;}
+.form-msg.err{background:rgba(248,81,73,.12);border:1px solid var(--red);color:var(--ink);}
+.form-msg.info{background:rgba(201,130,76,.12);border:1px solid var(--accent);color:var(--ink);}
+.form-msg button{margin-left:6px;}
+.form-input.invalid{border-color:var(--red);box-shadow:0 0 0 2px rgba(248,81,73,.25);}
 .form-help{font-size:.72rem;color:var(--ink2);line-height:1.5;}
 .list-icons{font-size:.7rem;margin-left:4px;}
 .detail-nav{display:flex;justify-content:space-between;gap:8px;padding:0 20px 12px;}
@@ -268,9 +274,11 @@ body:not(.light) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) brightne
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">✈️ Add New Adventure</div>
-      <button class="btn" onclick="closeModal()">×</button>
+      <button class="btn" onclick="requestClose()" title="Close">×</button>
     </div>
     <div class="modal-body">
+      <div class="form-msg info" id="draftMsg"></div>
+      <div class="form-msg err" id="formError"></div>
       <div class="form-group">
         <label class="form-label" for="fTitle">Trip title *</label>
         <input class="form-input" id="fTitle" placeholder="e.g. Tokyo Cherry Blossom">
@@ -330,7 +338,7 @@ body:not(.light) .leaflet-tile-pane{filter:invert(1) hue-rotate(185deg) brightne
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="requestClose()">Cancel</button>
       <button class="btn btn-accent" id="saveBtn" onclick="saveTrip()">Save Trip 🗺️</button>
     </div>
   </div>
@@ -642,10 +650,79 @@ function openModal(id) {
   selectedColor = t && t.color ? t.color : PIN_COLORS[0];
   renderColorPicker();
   document.getElementById('coordHint').textContent = t ? 'Current pin shown on the map' : 'or type the coordinates';
+  clearFormMsgs();
+  formSnapshot = JSON.stringify(readForm());
+  // restore unsaved typing from last time (closed by accident, page reloaded, signed out…)
+  const dm = document.getElementById('draftMsg');
+  let draft = null;
+  try { draft = JSON.parse(ls(draftKey()) || 'null'); } catch (e) {}
+  if (draft && JSON.stringify(draft) !== formSnapshot) {
+    fillForm(draft);
+    dm.innerHTML = '↩️ Restored what you were typing last time. <button class="small-btn" type="button" onclick="discardDraft()">Start over</button>';
+    dm.classList.add('show');
+  }
   document.getElementById('modalOverlay').classList.add('open');
   setTimeout(() => document.getElementById('fTitle').focus(), 50);
 }
-function closeModal() {
+// ── draft / dirty helpers ──
+let formSnapshot = '';
+function draftKey() { return 'travelDraft:' + (editId || 'new'); }
+function listVals(id) { return Array.from(document.querySelectorAll('#' + id + ' input')).map(i => i.value.trim()).filter(Boolean); }
+function readForm() {
+  return {
+    title: document.getElementById('fTitle').value, country: document.getElementById('fCountry').value,
+    date: document.getElementById('fDate').value, lat: document.getElementById('fLat').value, lng: document.getElementById('fLng').value,
+    story: document.getElementById('fStory').value, album: document.getElementById('fAlbum').value,
+    photos: listVals('photoUrlList'), videos: listVals('videoUrlList'), color: selectedColor
+  };
+}
+function fillForm(f) {
+  ['title','country','date','lat','lng','story','album'].forEach(k => {
+    const el = document.getElementById('f' + k.charAt(0).toUpperCase() + k.slice(1));
+    if (el && f[k] != null) el.value = f[k];
+  });
+  document.getElementById('photoUrlList').innerHTML = '';
+  ((f.photos && f.photos.length) ? f.photos : ['']).forEach(addPhotoUrl);
+  document.getElementById('videoUrlList').innerHTML = '';
+  ((f.videos && f.videos.length) ? f.videos : ['']).forEach(v => addUrlRow('videoUrlList', v));
+  if (f.color) { selectedColor = f.color; renderColorPicker(); }
+}
+function isDirty() { return JSON.stringify(readForm()) !== formSnapshot; }
+function saveDraft() {
+  if (!document.getElementById('modalOverlay').classList.contains('open')) return;
+  if (isDirty()) ls(draftKey(), JSON.stringify(readForm())); else { try { localStorage.removeItem(draftKey()); } catch (e) {} }
+}
+function discardDraft() {
+  try { localStorage.removeItem(draftKey()); } catch (e) {}
+  const id = editId; closeModal(true); openModal(id);
+}
+function clearFormMsgs() {
+  ['draftMsg', 'formError'].forEach(i => { const el = document.getElementById(i); el.classList.remove('show'); el.innerHTML = ''; });
+  document.querySelectorAll('.form-input.invalid').forEach(el => el.classList.remove('invalid'));
+}
+function formError(html, fieldIds) {
+  const box = document.getElementById('formError');
+  box.innerHTML = html; box.classList.add('show');
+  document.querySelectorAll('.form-input.invalid').forEach(el => el.classList.remove('invalid'));
+  (fieldIds || []).forEach(id => { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el) el.classList.add('invalid'); });
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+function requestClose() {
+  if (isDirty() && !confirm('Close without saving?\n\n(What you typed is kept as a draft — it comes back next time you open this form.)')) return;
+  closeModal();
+}
+// links: add https:// when missing; Google Photos / iCloud / Drive album links belong in the Album box
+function normLink(u) {
+  u = String(u || '').trim();
+  if (u && !/^https?:\/\//i.test(u) && /^[\w-]+(\.[\w-]+)+\//.test(u)) u = 'https://' + u;
+  return u;
+}
+function isAlbumLink(u) {
+  return /(photos\.app\.goo\.gl|photos\.google\.com\/(share|album|u\/\d+\/album)|goo\.gl\/photos|icloud\.com\/sharedalbum|share\.icloud\.com|drive\.google\.com\/drive\/folders|flickr\.com\/photos\/[^/]+\/albums)/i.test(u);
+}
+function closeModal(saved) {
+  if (saved === true) { try { localStorage.removeItem(draftKey()); } catch (e) {} } else saveDraft();
+  clearFormMsgs();
   endPick(true);
   document.getElementById('modalOverlay').classList.remove('open');
   if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
@@ -689,10 +766,29 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (picking) { endPick(); return; }
   if (document.getElementById('viewer').classList.contains('open')) { document.getElementById('viewer').classList.remove('open'); return; }
-  if (document.getElementById('modalOverlay').classList.contains('open')) { closeModal(); return; }
+  if (document.getElementById('modalOverlay').classList.contains('open')) { requestClose(); return; }
   closeDetail();
 });
-document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') closeModal(); });
+// clicking outside the form no longer closes it (it used to throw away everything typed)
+document.getElementById('modalOverlay').addEventListener('input', () => { clearTimeout(window._draftT); window._draftT = setTimeout(saveDraft, 400); });
+document.getElementById('modalOverlay').addEventListener('change', e => {
+  // a Google Photos album link pasted into Cover photos → move it to the Album box right away
+  const el = e.target;
+  if (!el.closest || !el.closest('#photoUrlList')) return;
+  const v = normLink(el.value);
+  if (v !== el.value) el.value = v;
+  if (isAlbumLink(v)) {
+    const alb = document.getElementById('fAlbum');
+    if (!alb.value.trim()) {
+      alb.value = v; el.value = '';
+      const dm = document.getElementById('draftMsg');
+      dm.innerHTML = '📸 That was an album link, so it was moved to the <b>Album link</b> box. Cover photos need a link to one picture (right-click the photo → <b>Copy image address</b>).';
+      dm.classList.add('show');
+    }
+  }
+  saveDraft();
+});
+window.addEventListener('beforeunload', saveDraft);
 
 async function saveTrip() {
   const title = document.getElementById('fTitle').value.trim();
@@ -701,13 +797,30 @@ async function saveTrip() {
   const lat = parseFloat(document.getElementById('fLat').value);
   const lng = parseFloat(document.getElementById('fLng').value);
   const story = document.getElementById('fStory').value.trim();
-  if (!title || !country || !date || isNaN(lat) || isNaN(lng)) { alert('Please fill in Title, Country, Month, and the location (Pick on map).'); return; }
-  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { alert('Latitude must be between −90 and 90, longitude between −180 and 180.'); return; }
-  const photos = Array.from(document.querySelectorAll('#photoUrlList input')).map(i => i.value.trim()).filter(Boolean);
-  const videos = Array.from(document.querySelectorAll('#videoUrlList input')).map(i => i.value.trim()).filter(Boolean);
-  const album = document.getElementById('fAlbum').value.trim();
-  const bad = photos.concat(videos, album ? [album] : []).filter(p => !safeUrl(p));
-  if (bad.length) { alert('Links must start with https://\n\n' + bad.join('\n')); return; }
+  const missing = [];
+  if (!title) missing.push(['fTitle', 'Trip title']);
+  if (!country) missing.push(['fCountry', 'Country']);
+  if (!date) missing.push(['fDate', 'Month']);
+  if (isNaN(lat) || isNaN(lng)) missing.push(['fLat', 'Location (tap 📍 Pick on map)']);
+  if (missing.length) {
+    formError('Please fill in: <b>' + missing.map(m => m[1]).join('</b>, <b>') + '</b>. Nothing was lost — fix it and press Save again.',
+              missing.map(m => m[0]).concat(isNaN(lng) ? ['fLng'] : []));
+    return;
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) { formError('Latitude must be between −90 and 90, longitude between −180 and 180.', ['fLat', 'fLng']); return; }
+  // tidy links
+  document.querySelectorAll('#photoUrlList input, #videoUrlList input, #fAlbum').forEach(i => { i.value = normLink(i.value); });
+  let album = document.getElementById('fAlbum').value.trim();
+  const photoInputs = Array.from(document.querySelectorAll('#photoUrlList input'));
+  photoInputs.forEach(i => { if (isAlbumLink(i.value) && !album) { album = i.value; document.getElementById('fAlbum').value = album; i.value = ''; } });
+  const albumInCovers = photoInputs.filter(i => isAlbumLink(i.value));
+  if (albumInCovers.length) {
+    formError('A Cover photo box has an <b>album</b> link, and the Album box is already filled. Cover photos need a link to one picture (right-click the photo → <b>Copy image address</b>), or remove that line with ×.', albumInCovers);
+    return;
+  }
+  const photos = listVals('photoUrlList'), videos = listVals('videoUrlList');
+  const badEls = Array.from(document.querySelectorAll('#photoUrlList input, #videoUrlList input, #fAlbum')).filter(i => i.value.trim() && !safeUrl(i.value));
+  if (badEls.length) { formError('These links must start with <b>https://</b> — check the red boxes.', badEls); return; }
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
   try {
@@ -721,12 +834,12 @@ async function saveTrip() {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       id = (await db.collection('travel_map').add(data)).id;
     }
-    closeModal();
+    closeModal(true);
     await loadTrips();
     toast(wasEdit ? 'Changes saved' : 'Trip saved ✈️');
     if (id) showDetail(id, true);
   } catch (e) {
-    alert('Error saving: ' + (e.message || e));
+    formError('Could not save: ' + esc(e.message || e) + '<br>Your typing is kept — try Save again.', []);
   } finally { btn.disabled = false; }
 }
 async function deleteTrip(id) {
